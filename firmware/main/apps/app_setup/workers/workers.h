@@ -341,9 +341,12 @@ private:
 
     std::unique_ptr<uitk::lvgl_cpp::Container> _panel;
     std::unique_ptr<uitk::lvgl_cpp::Container> _panel_general;
+    std::unique_ptr<uitk::lvgl_cpp::Container> _panel_startup;
     std::unique_ptr<uitk::lvgl_cpp::Label> _label_idle_motion_title;
     std::unique_ptr<uitk::lvgl_cpp::Label> _label_idle_motion_value;
     std::unique_ptr<uitk::lvgl_cpp::Slider> _slider_idle_motion;
+    std::unique_ptr<uitk::lvgl_cpp::Label> _label_startup_title;
+    std::unique_ptr<uitk::lvgl_cpp::Switch> _switch_start_ai_on_boot;
     std::unique_ptr<uitk::lvgl_cpp::Button> _btn_confirm;
 
     XiaozhiConfig_t _config;
