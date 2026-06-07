@@ -83,7 +83,17 @@ public:
     int getCurrentAngle() override
     {
         int current_pos = _scs_bus.ReadPos(_config.id);
-        int angle       = (current_pos - _zero_pos) * 5 * 10 / 16;
+        if (!is_raw_pos_valid(current_pos)) {
+            int fallback_angle = uitk::clamp(Servo::getCurrentAngle(), getAngleLimit().x, getAngleLimit().y);
+            mclog::tagWarn(_tag,
+                           "id: {} ignore invalid current pos: {}, fallback angle: {}",
+                           _config.id,
+                           current_pos,
+                           fallback_angle);
+            return fallback_angle;
+        }
+
+        int angle       = raw_pos_to_angle(current_pos);
         angle           = uitk::clamp(angle, getAngleLimit().x, getAngleLimit().y);
         // mclog::tagInfo(_tag, "id: {} current pos: {} angle: {}", _id, current_pos, angle);
         return angle;
@@ -112,7 +122,17 @@ public:
 
     void setCurrentAngleAsZero() override
     {
-        _zero_pos = _scs_bus.ReadPos(_config.id);
+        int current_pos = _scs_bus.ReadPos(_config.id);
+        if (!is_raw_pos_valid(current_pos)) {
+            mclog::tagWarn(_tag,
+                           "id: {} ignore invalid zero calibration pos: {}, keep zero pos: {}",
+                           _config.id,
+                           current_pos,
+                           _zero_pos);
+            return;
+        }
+
+        _zero_pos = current_pos;
 
         Settings settings(_config.settingNs, true);
         settings.SetInt(_config.settingZeroPositionKey, _zero_pos);
@@ -150,6 +170,16 @@ private:
     ServoConfig_t _config;
     int _zero_pos      = 0;
     Mode _current_mode = Mode::Position;
+
+    bool is_raw_pos_valid(int raw_pos) const
+    {
+        return raw_pos >= _config.rawPosLimit.x && raw_pos <= _config.rawPosLimit.y;
+    }
+
+    int raw_pos_to_angle(int raw_pos) const
+    {
+        return (raw_pos - _zero_pos) * 5 * 10 / 16;
+    }
 
     void check_mode(Mode targetMode)
     {
