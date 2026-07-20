@@ -8,10 +8,86 @@
 #include <mcp_server.h>
 #include <stackchan/stackchan.h>
 #include <apps/common/common.h>
+#include <atomic>
+#include <array>
+#include <cctype>
+#include <cstdlib>
+#include <vector>
 
 using namespace stackchan;
 
 static const std::string_view _tag = "HAL-MCP";
+
+namespace {
+
+// Neon light ring: left half is 0-5, right half is 6-11 (see RightNeonLight,
+// which offsets by 6 in neon_light.cpp).
+constexpr uint8_t kRgbLedCount = 12;
+
+// Head touch and IMU emit their signals from their own FreeRTOS tasks, while
+// the MCP callbacks run on the protocol task. Each field is read and written
+// independently, so relaxed atomics are enough; no cross-field invariant.
+struct InteractionLog {
+    std::atomic<uint32_t> last_pet_ms{0};
+    std::atomic<uint32_t> last_shake_ms{0};
+    std::atomic<uint32_t> pet_count{0};
+    std::atomic<uint32_t> shake_count{0};
+    std::atomic<int> last_pet_gesture{static_cast<int>(HeadPetGesture::None)};
+};
+
+InteractionLog _interaction;
+
+const char* _pet_gesture_name(int gesture)
+{
+    switch (static_cast<HeadPetGesture>(gesture)) {
+        case HeadPetGesture::Press:
+            return "press";
+        case HeadPetGesture::Release:
+            return "release";
+        case HeadPetGesture::SwipeForward:
+            return "swipe_forward";
+        case HeadPetGesture::SwipeBackward:
+            return "swipe_backward";
+        default:
+            return "none";
+    }
+}
+
+// -1 means "never happened", otherwise whole seconds since it last did.
+int _seconds_since(uint32_t event_ms, uint32_t now_ms)
+{
+    if (event_ms == 0) {
+        return -1;
+    }
+    return static_cast<int>((now_ms - event_ms) / 1000);
+}
+
+// Parse "ff0000,00ff00" into RGB triples. Tolerates '#', spaces and stray
+// separators, since the value comes straight from an LLM.
+std::vector<std::array<uint8_t, 3>> _parse_colors(std::string_view spec)
+{
+    std::vector<std::array<uint8_t, 3>> colors;
+    size_t pos = 0;
+
+    while (pos < spec.size() && colors.size() < kRgbLedCount) {
+        while (pos < spec.size() && !isxdigit(static_cast<unsigned char>(spec[pos]))) {
+            pos++;
+        }
+        size_t start = pos;
+        while (pos < spec.size() && isxdigit(static_cast<unsigned char>(spec[pos]))) {
+            pos++;
+        }
+        if (pos - start == 6) {
+            uint32_t value = strtoul(std::string(spec.substr(start, 6)).c_str(), nullptr, 16);
+            colors.push_back({static_cast<uint8_t>(value >> 16), static_cast<uint8_t>(value >> 8),
+                              static_cast<uint8_t>(value)});
+        }
+    }
+
+    return colors;
+}
+
+}  // namespace
 
 void Hal::xiaozhi_mcp_init()
 {
@@ -146,4 +222,78 @@ void Hal::xiaozhi_mcp_init()
                            tools::stop_reminder(id);
                            return true;
                        });
+
+    // Record physical contact so the pull-based MCP tools below can report it.
+    // These stay connected for the life of the process, so no disconnect.
+    onHeadPetGesture.connect([this](HeadPetGesture gesture) {
+        if (gesture == HeadPetGesture::None) {
+            return;
+        }
+        _interaction.last_pet_gesture.store(static_cast<int>(gesture));
+        _interaction.last_pet_ms.store(millis());
+        _interaction.pet_count.fetch_add(1);
+    });
+
+    onImuMotionEvent.connect([this](ImuMotionEvent event) {
+        if (event == ImuMotionEvent::Shake) {
+            _interaction.last_shake_ms.store(millis());
+            _interaction.shake_count.fetch_add(1);
+        }
+    });
+
+    mclog::tagInfo(_tag, "add robot.get_recent_interaction tool");
+    mcp_server.AddTool(
+        "self.robot.get_recent_interaction",
+        "Reports recent PHYSICAL contact with your body: head petting and being shaken. "
+        "Call this when you want to notice how the user is physically treating you, and react "
+        "naturally to it. The *_seconds_ago fields are -1 if that has never happened, otherwise "
+        "the number of seconds since it last did, so a value of 0-3 means it is happening right "
+        "now. Counts are totals since power-on. last_pet_gesture is one of: none, press, release, "
+        "swipe_forward, swipe_backward.",
+        std::vector<Property>{}, [this](const PropertyList& properties) -> ReturnValue {
+            uint32_t now = millis();
+
+            auto result = fmt::format(
+                R"({{"petted_seconds_ago": {}, "last_pet_gesture": "{}", "pet_count": {}, )"
+                R"("shaken_seconds_ago": {}, "shake_count": {}}})",
+                _seconds_since(_interaction.last_pet_ms.load(), now),
+                _pet_gesture_name(_interaction.last_pet_gesture.load()), _interaction.pet_count.load(),
+                _seconds_since(_interaction.last_shake_ms.load(), now), _interaction.shake_count.load());
+
+            mclog::tagInfo(_tag, "get_recent_interaction: {}", result);
+            return result;
+        });
+
+    mclog::tagInfo(_tag, "add robot.set_led_pattern tool");
+    mcp_server.AddTool(
+        "self.robot.set_led_pattern",
+        "Set your 12 body LEDs individually, for expressive patterns. 'colors' is a comma "
+        "separated list of 6-digit hex RGB values. The pattern repeats to fill all 12 LEDs, so "
+        "'ff0000' makes every LED red, 'ff0000,000000' alternates red and off, and a list of 12 "
+        "sets each one. LEDs 0-5 are your left side, 6-11 your right. Use '000000' to turn them "
+        "off. Keep each component at a0 or below so you are not uncomfortably bright. Note that "
+        "set_led_color, or your avatar changing mood, will overwrite this pattern with a single "
+        "flat color.",
+        PropertyList({Property("colors", kPropertyTypeString, std::string("000000"))}),
+        [this](const PropertyList& properties) -> ReturnValue {
+            std::string spec = properties["colors"].value<std::string>();
+            auto colors      = _parse_colors(spec);
+
+            if (colors.empty()) {
+                mclog::tagWarn(_tag, "set_led_pattern: no valid colors in '{}'", spec);
+                return R"({"error": "no valid 6-digit hex colors found, expected e.g. 'ff0000' or 'ff0000,0000ff'"})";
+            }
+
+            mclog::tagInfo(_tag, "set_led_pattern: '{}' -> {} color(s)", spec, colors.size());
+
+            LvglLockGuard lock;
+
+            for (uint8_t i = 0; i < kRgbLedCount; i++) {
+                const auto& color = colors[i % colors.size()];
+                setRgbColor(i, color[0], color[1], color[2]);
+            }
+            refreshRgb();
+
+            return true;
+        });
 }
