@@ -6,17 +6,14 @@
 
 Yuki is an embodied AI companion built for OpenAI Build Week 2026 on the M5Stack StackChan K151. The project extends the open-source factory firmware in native C and C++ instead of replacing it with a simplified demonstration.
 
-## Reviewer start here
+## Code layout
 
-This repository retains the upstream StackChan firmware so Yuki can be built and tested on the real device. All Yuki hackathon work starts at the [`hackathon-upstream-baseline`](https://github.com/baryhuang/yuki-desktop-robot/tree/hackathon-upstream-baseline) tag. Review the complete implementation in one comparison: [Yuki hackathon diff](https://github.com/baryhuang/yuki-desktop-robot/compare/hackathon-upstream-baseline...main).
+The repository root contains only Yuki's authored code and the changes that integrate it:
 
-For the shortest review path, start with:
-
-- [`firmware/main/stackchan/avatar/skins/yuki/`](firmware/main/stackchan/avatar/skins/yuki/) - original C++/LVGL character renderer and limited-animation scheduler
-- [`firmware/main/stackchan/vision/yuki_vision.cpp`](firmware/main/stackchan/vision/yuki_vision.cpp) - ESP-DL face tracking, gaze, wave wake, and servo safety coordination
-- [`firmware/main/stackchan/curiosity/yuki_curiosity.cpp`](firmware/main/stackchan/curiosity/yuki_curiosity.cpp) - idle-time interest-guided web curiosity behavior
-- [`firmware/main/hal/hal_mcp.cpp`](firmware/main/hal/hal_mcp.cpp) - robot capability MCP tools exposed to the configured agent backend
-- [`firmware/patches/xiaozhi-esp32.patch`](firmware/patches/xiaozhi-esp32.patch) - required changes to the fetched Xiaozhi runtime, kept as a patch rather than committing an opaque nested repository
+- [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
+- [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
+- [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - required modifications to the fetched Xiaozhi runtime
+- [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status
 
@@ -55,9 +52,10 @@ The runtime language-model backend is intentionally replaceable. Yuki's percepti
 The firmware requires ESP-IDF 5.5.4.
 
 ```sh
-cd firmware
-python3 ./fetch_repos.py
+./scripts/prepare-firmware.sh
+cd build/stackchan/firmware
 . "$HOME/esp/esp-idf/export.sh"
+python3 ./fetch_repos.py
 idf.py set-target esp32s3
 idf.py build
 ```
@@ -67,7 +65,8 @@ idf.py build
 Use a full `idf.py flash`, not `app-flash`. Yuki uses a custom dual-OTA layout with separate face-model and asset partitions, so an app-only flash omits required runtime data.
 
 ```sh
-cd firmware
+./scripts/prepare-firmware.sh
+cd build/stackchan/firmware
 . "$HOME/esp/esp-idf/export.sh"
 idf.py -p /dev/cu.usbmodem1101 flash
 ```
@@ -86,6 +85,6 @@ See [DEVPOST.md](DEVPOST.md) for the full project story.
 
 ## Hackathon work and upstream work
 
-This repository is based on [M5Stack/StackChan](https://github.com/m5stack/StackChan). The `hackathon-upstream-baseline` tag identifies the upstream source immediately before the Yuki implementation; the comparison above is the authoritative distinction between upstream and hackathon work.
+This repository is based on [M5Stack/StackChan](https://github.com/m5stack/StackChan). The original firmware is isolated in `upstream/stackchan/`; all authored source and integration changes are visible at the root paths listed above.
 
 The original StackChan firmware is Copyright (c) 2026 M5Stack Technology CO LTD and distributed under the MIT License. See [LICENSE](LICENSE). StackChan is a product of M5Stack; Yuki is an independent hackathon project built on its open-source firmware.

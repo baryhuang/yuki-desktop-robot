@@ -1,18 +1,12 @@
 .DS_Store
 .idea/
+build/
 
-# ESP-IDF generated files and fetched dependencies
-firmware/.cache/
-firmware/build/
-firmware/components/
-firmware/managed_components/
-firmware/sdkconfig
-firmware/xiaozhi-esp32/
-firmware/sdkconfig.defaults.local
-
-# Local credentials, device state, and editor files
-.env
-.env.*
-*.local
-*.sqlite
-*.log
+# Legacy local firmware workspace and generated dependencies.
+/firmware/.cache/
+/firmware/build/
+/firmware/components/
+/firmware/managed_components/
+/firmware/sdkconfig
+/firmware/sdkconfig.defaults.local
+/firmware/xiaozhi-esp32/

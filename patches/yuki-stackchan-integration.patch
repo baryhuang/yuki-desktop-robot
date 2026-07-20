@@ -1,0 +1,2572 @@
+diff --git a/firmware/CMakeLists.txt b/firmware/CMakeLists.txt
+index 5ad5f86..ea28f58 100644
+--- a/firmware/CMakeLists.txt
++++ b/firmware/CMakeLists.txt
+@@ -2,7 +2,7 @@
+ # CMakeLists in this exact order for cmake to work correctly
+ cmake_minimum_required(VERSION 3.16)
+ 
+-set(PROJECT_VER "1.4.3")
++set(PROJECT_VER "0.1.0")
+ add_definitions(-DFIRMWARE_VERSION=\"${PROJECT_VER}\")
+ 
+ # Add this line to disable the specific warning
+diff --git a/firmware/dependencies.lock b/firmware/dependencies.lock
+index 325d398..cd8b534 100644
+--- a/firmware/dependencies.lock
++++ b/firmware/dependencies.lock
+@@ -16,17 +16,23 @@ dependencies:
+       type: service
+     version: 3.6.5
+   78/esp-wifi-connect:
+-    component_hash: e64ce09a795dd3b4883e1f68be10b0dd11260331f021a5f0b1f3bfd9a25d413b
++    component_hash: 2774077ebdc43a871ad134b9048aaeb59b10d4599e839be2b5a634f5b2a023e9
+     dependencies:
++    - matches:
++      - if: idf_version >=6.0
++      name: espressif/cjson
++      registry_url: https://components.espressif.com
++      require: private
++      version: ^1.7.19
+     - name: idf
+       require: private
+       version: '>=5.3'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 3.1.2
++    version: 3.1.5
+   78/esp_lcd_nv3023:
+-    component_hash: fa88abfc19a312eb5e6f2ffa187e0a9faf67e01e758bfb979d3f9d92561a494f
++    component_hash: 2d1c227ae9c8d7303c0be9b2f2b45e595169a2ccb3055aad93b5f1600110b236
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -38,9 +44,9 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.0
++    version: 1.0.1
+   78/uart-eth-modem:
+-    component_hash: 7a33284e4ba22f420191be8021cd4fe3e49f5e50eea1db70370b217a18147d8e
++    component_hash: c74557e75766f5dd7a265a7ed80c68d01a910940600886b416acd206a615b614
+     dependencies:
+     - name: 78/uart-uhci
+       registry_url: https://components.espressif.com
+@@ -56,9 +62,9 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 0.3.4
++    version: 0.3.5
+   78/uart-uhci:
+-    component_hash: 200eb10923cb750dddbee5504a36d7b5eaac611afbf52fb9066dc7130159f696
++    component_hash: d33e4cd9f634a561bfddcad79be6fa30f0ee279a9e4d1a2df91eabccbca5d362
+     dependencies:
+     - name: idf
+       require: private
+@@ -66,7 +72,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com
+       type: service
+-    version: 0.2.1
++    version: 0.2.2
+   78/xiaozhi-fonts:
+     component_hash: 19ee829a7439702e18084a313b7b86017d3b8d17a094684575edc76bb6d11023
+     dependencies:
+@@ -78,7 +84,7 @@ dependencies:
+       type: service
+     version: 1.6.0
+   espressif/adc_battery_estimation:
+-    component_hash: b915167c87ed5a84b13d680bd011c2ed9a15121f1e247c6903141b9f138f3606
++    component_hash: 878dd59e1bb60de314d5ecb52dce7e59a83598a41bf48cdbdec60e08e2bb907d
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -90,9 +96,9 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 0.2.1
++    version: 0.2.2
+   espressif/adc_mic:
+-    component_hash: 3bb576d530564cb8e805fc34309d485de393f634651f3d31579fe3037b581d4f
++    component_hash: dd39c1142555f41ee06671355e91d6dc1fd9f1ef424f78f3dcfbafd8ac030df4
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -101,16 +107,16 @@ dependencies:
+     - name: espressif/esp_codec_dev
+       registry_url: https://components.espressif.com
+       require: private
+-      version: ^1.3.*
++      version: '>=1.3.0,<1.5.5'
+     - name: idf
+       require: private
+       version: '>=5.0'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 0.2.2
++    version: 0.2.3
+   espressif/bmi270_sensor:
+-    component_hash: fac23a5ecd2effdac0fb0705988d853745b8ffb99a384f87a307b3b25d15d432
++    component_hash: 10f18ccc44bc71b09c0680c003c24cfb273905b079314efe1095e8ea9d714147
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -126,9 +132,9 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 0.1.1
++    version: 0.1.2
+   espressif/button:
+-    component_hash: d0afa32f0e50d60bc0c6fc23f7eea98adc6b02cfe70b590bc52c23c506745287
++    component_hash: 95babe831403e301511a22a4dfcd599abcf32cf72c7f8ac5352a61662363c9ea
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -140,7 +146,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 4.1.6
++    version: 4.1.7
+   espressif/cmake_utilities:
+     component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
+     dependencies:
+@@ -152,7 +158,7 @@ dependencies:
+       type: service
+     version: 0.5.3
+   espressif/dl_fft:
+-    component_hash: 7dadbd644c0d7ba4733cc3726ec4cff6edf27b043725e1115861dec1609a3d28
++    component_hash: a955ca29581de2177ddf25759273bd83f082b3c805e735fe6ee105858643989b
+     dependencies:
+     - name: idf
+       require: private
+@@ -160,7 +166,38 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com
+       type: service
+-    version: 0.3.1
++    version: 0.6.0
++  espressif/esp-dl:
++    component_hash: 3988acc4c6114459c9134b65d9088195c14d43a80193fe2ca2785c1fe0390f36
++    dependencies:
++    - name: espressif/dl_fft
++      registry_url: https://components.espressif.com
++      require: private
++      version: '>=0.3.1'
++    - name: espressif/esp-dsp
++      registry_url: https://components.espressif.com
++      require: private
++      version: ==1.7.0
++    - name: espressif/esp_new_jpeg
++      registry_url: https://components.espressif.com
++      require: private
++      version: ^0.6.1
++    - name: idf
++      require: private
++      version: '*'
++    source:
++      registry_url: https://components.espressif.com
++      type: service
++    targets:
++    - esp32
++    - esp32c2
++    - esp32c3
++    - esp32c5
++    - esp32c6
++    - esp32p4
++    - esp32s2
++    - esp32s3
++    version: 3.3.0
+   espressif/esp-dsp:
+     component_hash: 42dce32d46ac93dc11f60d368e29a830e9661c7345d794b8a45c343479cae636
+     dependencies:
+@@ -190,7 +227,7 @@ dependencies:
+       type: service
+     version: 2.3.1
+   espressif/esp32-camera:
+-    component_hash: ac4228c825b891378bc0806869170d4ebc5d45ba8ebc519b4f8886a56ad2d123
++    component_hash: bc9c8a6b51df777a014fa295825b3de5069bc0300c317acff20c97cf4a10ac7d
+     dependencies:
+     - name: espressif/esp_jpeg
+       registry_url: https://components.espressif.com
+@@ -202,7 +239,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 2.1.5
++    version: 2.1.7
+   espressif/esp_audio_codec:
+     component_hash: af4663830bc73eca58febcc34a976d003465e78ed57458aa00a14b231e392ca1
+     dependencies:
+@@ -256,7 +293,7 @@ dependencies:
+       type: service
+     version: 1.5.4
+   espressif/esp_image_effects:
+-    component_hash: a35037db02862d3cef6f72c25f422ae62da6e6c88219ce03c9ea24e0315ceaaa
++    component_hash: a9a9a18173dc338f94559e61ebbfc1aeff5ebb2f7703e7e3d2431c5bb3450fe6
+     dependencies:
+     - name: idf
+       require: private
+@@ -264,7 +301,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.1
++    version: 1.1.0
+   espressif/esp_io_expander:
+     component_hash: 7b7f91270172e46ca4597e3874f48d8412e280e8c295559f5922ec38656e3e5f
+     dependencies:
+@@ -332,7 +369,7 @@ dependencies:
+       type: service
+     version: 1.0.1~1
+   espressif/esp_lcd_co5300:
+-    component_hash: 7004162c496b65a5e0ee7c92800c33c12b373ea70d07199318a182cb16c741b7
++    component_hash: 21f84c5c825509ebacbddb379555b49092ae165b3e19f0edfbf6f8eff8aa036d
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -344,7 +381,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 2.0.3
++    version: 2.1.0
+   espressif/esp_lcd_gc9a01:
+     component_hash: 09ddc8f5c9d718a659ffa30a4040e1ae75077e68492c38aec8c2beaaa7b3a9bc
+     dependencies:
+@@ -374,11 +411,8 @@ dependencies:
+       type: service
+     version: 1.2.0
+   espressif/esp_lcd_panel_io_additions:
+-    component_hash: 213d5c4a3c322a48c9f993d6bc2372206d34af95db34e87a3e02601bdcad7ce8
++    component_hash: 1856c8b2c11aaa8a9fd67481582162bcad25f7064661a995f35c2ee8dd10ebcc
+     dependencies:
+-    - name: idf
+-      require: private
+-      version: '>=4.4.2'
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+       require: private
+@@ -387,10 +421,13 @@ dependencies:
+       registry_url: https://components.espressif.com
+       require: public
+       version: ^1
++    - name: idf
++      require: private
++      version: '>=4.4.2'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.1
++    version: 1.0.1~1
+   espressif/esp_lcd_spd2010:
+     component_hash: 8637c97feeb8d83ba637599f6bf4ef30e83595486930e7df17ffa24f3fef1242
+     dependencies:
+@@ -466,7 +503,7 @@ dependencies:
+       type: service
+     version: 1.2.1
+   espressif/esp_lcd_touch_cst816s:
+-    component_hash: 6b11c489952c121396d4eaf5804b45e3f1f8dcd2c548dc6f2cbedf68622b013d
++    component_hash: a562ca3238756cca575908ed2cc4da4bab95f3815180b4f01f4c949b658bdd6d
+     dependencies:
+     - name: espressif/esp_lcd_touch
+       registry_url: https://components.espressif.com
+@@ -474,11 +511,11 @@ dependencies:
+       version: ^1.2.0
+     - name: idf
+       require: private
+-      version: '>=4.4.2'
++      version: '>=5.2'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.1.1
++    version: 1.1.1~1
+   espressif/esp_lcd_touch_ft5x06:
+     component_hash: abaec05f46a793549b60afdda9eff86e3c8e87782c8c169007911232388d2858
+     dependencies:
+@@ -494,7 +531,7 @@ dependencies:
+       type: service
+     version: 1.0.7
+   espressif/esp_lcd_touch_gt1151:
+-    component_hash: acd0fb87e8b58dc90cebda8438ee31c068975c15c040a62723843ca0420d38b6
++    component_hash: 60ef8b9429fad6526607b7b423c3caa6728fd8eee182f67de7fefa87f9ec6754
+     dependencies:
+     - name: espressif/esp_lcd_touch
+       registry_url: https://components.espressif.com
+@@ -502,13 +539,13 @@ dependencies:
+       version: ^1.2.0
+     - name: idf
+       require: private
+-      version: '>=4.4.2'
++      version: '>=5.2'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.1.0
++    version: 1.1.0~1
+   espressif/esp_lcd_touch_gt911:
+-    component_hash: be02e243d18b9a661bc13b0d22c0a5cfa3f708cf04d6eb059772276c8c8a4d76
++    component_hash: 6029febef66eefd0910d527d7f30292779ccbf22a8dedd2bd69466acf0068a7b
+     dependencies:
+     - name: espressif/esp_lcd_touch
+       registry_url: https://components.espressif.com
+@@ -516,13 +553,13 @@ dependencies:
+       version: ^1.2.0
+     - name: idf
+       require: private
+-      version: '>=4.4.2'
++      version: '>=5.2'
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.2.0~1
++    version: 1.2.0~2
+   espressif/esp_lcd_touch_st7123:
+-    component_hash: 717080a55368a5ca3e3704081a75ddab3e0b8884e335e73b7094beb8ae55f195
++    component_hash: c43fd76fb12b4dd1bf30d60e99e4ec150b16e17cafc942a58e6274d4b68e71fe
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -538,7 +575,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.1
++    version: 1.0.2
+   espressif/esp_lvgl_port:
+     component_hash: b6360960f47b6776462e7092861b3ea66477ffb762a01baa0aecbb3d74cd50f4
+     dependencies:
+@@ -554,7 +591,7 @@ dependencies:
+       type: service
+     version: 2.7.2
+   espressif/esp_mmap_assets:
+-    component_hash: 91d785326b03db15e2f7f1314d8c976d38f21aa5759b570dcbbc89bcf247fd27
++    component_hash: b7c559238d9f4c11048b1d7302f5474e4f4f590902433efd792bd0cbf5324f2a
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -566,7 +603,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.4.0
++    version: 2.0.0
+   espressif/esp_new_jpeg:
+     component_hash: e6af208a875abd0ecfc0213d3751a11b504b463ebde6930f24096047925fa5c1
+     dependencies: []
+@@ -643,8 +680,19 @@ dependencies:
+     - esp32c6
+     - esp32c61
+     version: 1.3.1
++  espressif/human_face_detect:
++    component_hash: a413ff0571a9823e82cc391e633bedae5f43cb950611e5ed3439a77ab754808b
++    dependencies:
++    - name: espressif/esp-dl
++      registry_url: https://components.espressif.com
++      require: private
++      version: ~3.3.0
++    source:
++      registry_url: https://components.espressif.com/
++      type: service
++    version: 0.5.0
+   espressif/i2c_bus:
+-    component_hash: 804ec068d163570fd367b279a310ca383484630d2310c586b50def0bcf21de13
++    component_hash: 483112c1619c54c38d0b734fb25f1678733267858a77b7af2f48cc7db6dbbd84
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -656,7 +704,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com
+       type: service
+-    version: 1.5.1
++    version: 1.5.2
+   espressif/iot_eth:
+     component_hash: ffcea72f079264b6905e428a406cb6d2512dfede10d100c49d3486dd78dc1873
+     dependencies:
+@@ -672,23 +720,31 @@ dependencies:
+       type: service
+     version: 0.1.0
+   espressif/iot_usbh_cdc:
+-    component_hash: 6b30e8eeef1a3320a3bc0c27980c62826ed134b681be6f424366f3d78c291814
++    component_hash: e924a79e9b7926b38bee52234d9f90101d8926f5e560dd5edf51c395546eac87
+     dependencies:
+-    - name: idf
+-      require: private
+-      version: '>=5.1'
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+       require: private
+       version: '*'
++    - name: espressif/usb
++      registry_url: https://components.espressif.com
++      require: public
++      rules:
++      - if: idf_version >=6.0
++      - if: target not in ["linux"]
++      version: ^1.4.0
++    - name: idf
++      require: private
++      version: '>=5.1'
+     source:
+       registry_url: https://components.espressif.com
+       type: service
+     targets:
+     - esp32s2
+     - esp32s3
++    - esp32s31
+     - esp32p4
+-    version: 3.0.0
++    version: 3.1.0
+   espressif/iot_usbh_rndis:
+     component_hash: 0d91d9c79980fe0d2b59ecae9341d91852b7eb3356cc0e708f76425a3604ff5b
+     dependencies:
+@@ -716,7 +772,7 @@ dependencies:
+     - esp32p4
+     version: 0.3.1
+   espressif/knob:
+-    component_hash: 138ed090b4c9090a0a678f695b9d1884b368130c729b7333ed35bd7f4e8da80e
++    component_hash: b56694054cd34a683ac2a6f3661963ba00b1dab741a4f3bb59ed6666cbc9f3fb
+     dependencies:
+     - name: espressif/cmake_utilities
+       registry_url: https://components.espressif.com
+@@ -728,7 +784,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.2
++    version: 1.1.0
+   espressif/led_strip:
+     component_hash: 28621486f77229aaf81c71f5e15d6fbf36c2949cf11094e07090593e659e7639
+     dependencies:
+@@ -788,14 +844,14 @@ dependencies:
+       type: service
+     version: 9.4.0
+   tny-robotics/sh1106-esp-idf:
+-    component_hash: 7be190d7c58cd635adf8b74b3a841f8245f2f82f36d135a64d8e53cfab39124d
++    component_hash: b7a0cd10a16a249142b400014ad41716fb5420b4b55e08b9693e5911d9949a49
+     dependencies: []
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.0
++    version: 1.0.1
+   txp666/otto-emoji-gif-component:
+-    component_hash: 8da812ae44707af319a20e164e8b544199fe401436167c206e684594e0a38c5d
++    component_hash: fc41eb8ff543a83aa435fb88c6c465c23ddea93ed9e350ee952529a3d8ec3d41
+     dependencies:
+     - name: lvgl/lvgl
+       registry_url: https://components.espressif.com
+@@ -804,9 +860,9 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.1.1
++    version: 1.3.0
+   waveshare/custom_io_expander_ch32v003:
+-    component_hash: fefced27c762ed97a3523c9d90d66050deea7eeb7e9eae6328e4ab1a71125d26
++    component_hash: 3826ec1d3911b689e095dbebebc5db1431e3e7d4f6d9d3f71378519b91384cef
+     dependencies:
+     - name: espressif/esp_io_expander
+       registry_url: https://components.espressif.com
+@@ -818,7 +874,7 @@ dependencies:
+     source:
+       registry_url: https://components.espressif.com/
+       type: service
+-    version: 1.0.1
++    version: 1.0.2
+   waveshare/esp_lcd_sh8601:
+     component_hash: 1a2829e9db4e0515bad6ce83368f199dec60519fbba40251d6c8249f5d070ae1
+     dependencies:
+@@ -898,6 +954,7 @@ direct_dependencies:
+ - espressif/esp_mmap_assets
+ - espressif/esp_new_jpeg
+ - espressif/esp_video
++- espressif/human_face_detect
+ - espressif/iot_usbh_rndis
+ - espressif/knob
+ - espressif/led_strip
+@@ -910,6 +967,6 @@ direct_dependencies:
+ - waveshare/esp_lcd_sh8601
+ - waveshare/esp_lcd_touch_cst9217
+ - wvirgil123/sscma_client
+-manifest_hash: 350e17991f1a3226438480b027525b7cde67c34ed4ec6c5847cdfcb22e18dc4a
++manifest_hash: 35c03a2de4fcfe71ffb323c54160ed17d8863ed2ff6b5a5f6a0efec85314b21d
+ target: esp32s3
+ version: 2.0.0
+diff --git a/firmware/main/apps/app_app_center/app_app_center.cpp b/firmware/main/apps/app_app_center/app_app_center.cpp
+deleted file mode 100644
+index 5719d8a..0000000
+--- a/firmware/main/apps/app_app_center/app_app_center.cpp
++++ /dev/null
+@@ -1,125 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#include "app_app_center.h"
+-#include <hal/hal.h>
+-#include <mooncake.h>
+-#include <mooncake_log.h>
+-#include <assets/assets.h>
+-#include <apps/common/common.h>
+-#include <memory>
+-
+-using namespace mooncake;
+-using namespace smooth_ui_toolkit::lvgl_cpp;
+-
+-AppAppCenter::AppAppCenter()
+-{
+-    // 配置 App 名
+-    setAppInfo().name = "APP.CENTER";
+-    // 配置 App 图标
+-    static auto icon  = assets::get_image("icon_app_center.bin");
+-    setAppInfo().icon = (void*)&icon;
+-    // 配置 App 主题颜色
+-    static uint32_t theme_color = 0xF4A354;
+-    setAppInfo().userData       = (void*)&theme_color;
+-}
+-
+-void AppAppCenter::onCreate()
+-{
+-    mclog::tagInfo(getAppInfo().name, "on create");
+-}
+-
+-void AppAppCenter::onOpen()
+-{
+-    mclog::tagInfo(getAppInfo().name, "on open");
+-
+-    // Create loading page
+-    std::unique_ptr<view::LoadingPage> loading_page;
+-    {
+-        LvglLockGuard lock;
+-        loading_page = std::make_unique<view::LoadingPage>(0xF4A354, 0x332609);
+-    }
+-
+-    // Start network
+-    GetHAL().startNetwork([&](std::string_view msg) {
+-        LvglLockGuard lock;
+-        loading_page->setMessage(msg);
+-    });
+-
+-    // Fetch app list
+-    {
+-        LvglLockGuard lock;
+-        loading_page->setMessage("Fetching app list...");
+-    }
+-    _app_list = GetHAL().fetchAppList();
+-
+-    LvglLockGuard lock;
+-
+-    // Destroy loading page
+-    loading_page.reset();
+-
+-    _app_list_page = std::make_unique<view::AppListPage>(_app_list);
+-
+-    view::create_home_indicator([&]() { close(); }, 0xFFDF9A, 0x47330A);
+-    view::create_status_bar(0xFFDF9A, 0x47330A);
+-}
+-
+-void AppAppCenter::onRunning()
+-{
+-    if (_launch_requested) {
+-        GetHAL().launchApp(_app_list[_selected_index].firmwareUrl, [&](int percent) {
+-            LvglLockGuard lock;
+-            if (_app_install_page) {
+-                _app_install_page->setProgress(percent);
+-            }
+-        });
+-    }
+-
+-    LvglLockGuard lock;
+-
+-    if (_app_list_page) {
+-        _selected_index = _app_list_page->isSelected();
+-        if (_selected_index >= 0) {
+-            mclog::tagInfo(getAppInfo().name, "selected index: {}", _selected_index);
+-            _app_list_page.reset();
+-            _app_detail_page = std::make_unique<view::AppDetailPage>(_app_list[_selected_index]);
+-        }
+-    }
+-
+-    if (_app_detail_page) {
+-        if (_app_detail_page->checkBack()) {
+-            mclog::tagInfo(getAppInfo().name, "back to app list");
+-            _app_detail_page.reset();
+-            _app_list_page = std::make_unique<view::AppListPage>(_app_list);
+-        } else if (_app_detail_page->checkLaunch()) {
+-            mclog::tagInfo(getAppInfo().name, "launch app");
+-            _app_detail_page.reset();
+-            _app_install_page = std::make_unique<view::AppInstallPage>(_app_list[_selected_index]);
+-            _launch_requested = true;
+-        }
+-    }
+-
+-    view::update_home_indicator();
+-    view::update_status_bar();
+-}
+-
+-void AppAppCenter::onClose()
+-{
+-    mclog::tagInfo(getAppInfo().name, "on close");
+-
+-    LvglLockGuard lock;
+-
+-    _app_list.clear();
+-    _app_list_page.reset();
+-    _app_detail_page.reset();
+-    _app_install_page.reset();
+-    _selected_index   = -1;
+-    _launch_requested = false;
+-
+-    view::destroy_home_indicator();
+-    view::destroy_status_bar();
+-
+-    GetHAL().requestWarmReboot(3);
+-}
+diff --git a/firmware/main/apps/app_app_center/app_app_center.h b/firmware/main/apps/app_app_center/app_app_center.h
+deleted file mode 100644
+index 688b4d9..0000000
+--- a/firmware/main/apps/app_app_center/app_app_center.h
++++ /dev/null
+@@ -1,31 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#pragma once
+-#include "view/view.h"
+-#include <mooncake.h>
+-
+-/**
+- * @brief 派生 App
+- *
+- */
+-class AppAppCenter : public mooncake::AppAbility {
+-public:
+-    AppAppCenter();
+-
+-    // 重写生命周期回调
+-    void onCreate() override;
+-    void onOpen() override;
+-    void onRunning() override;
+-    void onClose() override;
+-
+-private:
+-    std::vector<app_center::AppInfo_t> _app_list;
+-    std::unique_ptr<view::AppListPage> _app_list_page;
+-    std::unique_ptr<view::AppDetailPage> _app_detail_page;
+-    std::unique_ptr<view::AppInstallPage> _app_install_page;
+-    int _selected_index    = -1;
+-    bool _launch_requested = false;
+-};
+diff --git a/firmware/main/apps/app_app_center/view/view.h b/firmware/main/apps/app_app_center/view/view.h
+deleted file mode 100644
+index 7c42912..0000000
+--- a/firmware/main/apps/app_app_center/view/view.h
++++ /dev/null
+@@ -1,278 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#pragma once
+-#include <hal/hal.h>
+-#include <smooth_lvgl.hpp>
+-#include <uitk/short_namespace.hpp>
+-#include <assets/assets.h>
+-#include <mooncake_log.h>
+-#include <functional>
+-#include <vector>
+-#include <string>
+-#include <memory>
+-
+-namespace view {
+-
+-/**
+- * @brief
+- *
+- */
+-class AppListPage {
+-public:
+-    AppListPage(const app_center::AppInfoList_t& app_list)
+-
+-    {
+-        _panel = std::make_unique<uitk::lvgl_cpp::Container>(lv_screen_active());
+-        _panel->setSize(320, 240);
+-        _panel->setAlign(LV_ALIGN_CENTER);
+-        _panel->setBgColor(lv_color_hex(0xFFFAD6));
+-        _panel->setFlexFlow(LV_FLEX_FLOW_COLUMN);
+-        _panel->setFlexAlign(LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+-        _panel->setPadding(52, 72, 0, 0);
+-        _panel->setPadRow(18);
+-        _panel->setRadius(0);
+-        _panel->setBorderWidth(0);
+-        _panel->setScrollbarMode(LV_SCROLLBAR_MODE_ACTIVE);
+-
+-        _bg_image = assets::get_image("app_center_bg.png");
+-        if (_bg_image.data_size != 0) {
+-            lv_obj_set_style_bg_image_src(_panel->get(), &_bg_image, LV_PART_MAIN);
+-        }
+-
+-        _title_panel = std::make_unique<uitk::lvgl_cpp::Container>(lv_screen_active());
+-        _title_panel->setSize(320, 28);
+-        _title_panel->align(LV_ALIGN_TOP_MID, 0, 0);
+-        _title_panel->setBgColor(lv_color_hex(0xF4A354));
+-        _title_panel->setPadding(0, 0, 0, 0);
+-        _title_panel->setRadius(0);
+-        _title_panel->setBorderWidth(0);
+-        _title_panel->setScrollbarMode(LV_SCROLLBAR_MODE_ACTIVE);
+-
+-        _title = std::make_unique<uitk::lvgl_cpp::Label>(*_title_panel);
+-        _title->setText("App Center");
+-        _title->setTextFont(&lv_font_montserrat_16);
+-        _title->setTextColor(lv_color_hex(0xFFF8C7));
+-        _title->align(LV_ALIGN_CENTER, 0, 0);
+-
+-        int index = 0;
+-        for (const auto& app : app_list) {
+-            auto btn = std::make_unique<uitk::lvgl_cpp::Button>(*_panel);
+-            btn->setSize(282, 52);
+-            btn->setRadius(18);
+-            btn->setBorderWidth(0);
+-            btn->setShadowWidth(0);
+-            btn->setBgColor(lv_color_hex(0xFFDF9A));
+-
+-            btn->label().setText(app.name);
+-            btn->label().setTextFont(&lv_font_montserrat_20);
+-            btn->label().setTextColor(lv_color_hex(0x47330A));
+-            btn->label().setLongMode(LV_LABEL_LONG_SCROLL_CIRCULAR);
+-            btn->label().setWidth(220);
+-            btn->label().setTextAlign(LV_TEXT_ALIGN_CENTER);
+-            btn->label().setAlign(LV_ALIGN_CENTER);
+-
+-            btn->onClick().connect([this, index]() { _clicked_index = index; });
+-
+-            _buttons.push_back(std::move(btn));
+-            index++;
+-        }
+-    }
+-
+-    int isSelected()
+-    {
+-        int temp       = _clicked_index;
+-        _clicked_index = -1;
+-        return temp;
+-    }
+-
+-private:
+-    std::unique_ptr<uitk::lvgl_cpp::Container> _panel;
+-    std::unique_ptr<uitk::lvgl_cpp::Container> _title_panel;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _title;
+-    std::vector<std::unique_ptr<uitk::lvgl_cpp::Button>> _buttons;
+-    lv_image_dsc_t _bg_image;
+-
+-    int _clicked_index = -1;
+-};
+-
+-/**
+- * @brief
+- *
+- */
+-class AppDetailPage {
+-public:
+-    AppDetailPage(const app_center::AppInfo_t& app_info)
+-    {
+-        _panel = std::make_unique<uitk::lvgl_cpp::Container>(lv_screen_active());
+-        _panel->setBgColor(lv_color_hex(0xFFFAD6));
+-        _panel->align(LV_ALIGN_CENTER, 0, 0);
+-        _panel->setBorderWidth(0);
+-        _panel->setSize(320, 240);
+-        _panel->setRadius(0);
+-        _panel->setFlexFlow(LV_FLEX_FLOW_COLUMN);
+-        _panel->setFlexAlign(LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+-        _panel->setPadding(48, 72, 0, 0);
+-        _panel->setPadRow(18);
+-        _panel->setScrollbarMode(LV_SCROLLBAR_MODE_ACTIVE);
+-
+-        _bg_image = assets::get_image("app_center_bg.png");
+-        if (_bg_image.data_size != 0) {
+-            lv_obj_set_style_bg_image_src(_panel->get(), &_bg_image, LV_PART_MAIN);
+-        }
+-
+-        _title = std::make_unique<uitk::lvgl_cpp::Label>(*_panel);
+-        _title->setText(app_info.name);
+-        _title->setTextFont(&lv_font_montserrat_20);
+-        _title->setTextColor(lv_color_hex(0x47330A));
+-        _title->setTextAlign(LV_TEXT_ALIGN_CENTER);
+-        _title->setLongMode(LV_LABEL_LONG_SCROLL_CIRCULAR);
+-        _title->setWidth(220);
+-        _title->setHeight(28);
+-
+-        _desc_label = std::make_unique<uitk::lvgl_cpp::Label>(*_panel);
+-        _desc_label->setText(app_info.description);
+-        _desc_label->setTextFont(&lv_font_montserrat_20);
+-        _desc_label->setTextColor(lv_color_hex(0x47330A));
+-        _desc_label->setTextAlign(LV_TEXT_ALIGN_LEFT);
+-        _desc_label->setWidth(260);
+-        _desc_label->setLongMode(LV_LABEL_LONG_WRAP);
+-
+-        _btn_container = std::make_unique<uitk::lvgl_cpp::Container>(*_panel);
+-        _btn_container->setSize(LV_PCT(100), 80);
+-        _btn_container->setBgOpa(LV_OPA_TRANSP);
+-        _btn_container->setBorderWidth(0);
+-        _btn_container->setPadding(0, 0, 0, 0);
+-        _btn_container->setPadColumn(28);
+-        _btn_container->setFlexFlow(LV_FLEX_FLOW_ROW);
+-        _btn_container->setFlexAlign(LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+-
+-        _btn_back = std::make_unique<uitk::lvgl_cpp::Button>(*_btn_container);
+-        _btn_back->setSize(112, 48);
+-        _btn_back->setRadius(18);
+-        _btn_back->setBgColor(lv_color_hex(0xFFDF9A));
+-        _btn_back->setBorderWidth(0);
+-        _btn_back->setShadowWidth(0);
+-        _btn_back->label().setText("Back");
+-        _btn_back->label().setTextFont(&lv_font_montserrat_20);
+-        _btn_back->label().setTextColor(lv_color_hex(0x47330A));
+-        _btn_back->onClick().connect([this]() { _is_back = true; });
+-
+-        _btn_launch = std::make_unique<uitk::lvgl_cpp::Button>(*_btn_container);
+-        _btn_launch->setSize(112, 48);
+-        _btn_launch->setRadius(18);
+-        _btn_launch->setBgColor(lv_color_hex(0xFFAC6D));
+-        _btn_launch->setBorderWidth(0);
+-        _btn_launch->setShadowWidth(0);
+-        _btn_launch->label().setText("Launch");
+-        _btn_launch->label().setTextFont(&lv_font_montserrat_20);
+-        _btn_launch->label().setTextColor(lv_color_hex(0x47330A));
+-        _btn_launch->onClick().connect([this]() { _is_launch = true; });
+-    }
+-
+-    bool checkBack()
+-    {
+-        if (_is_back) {
+-            _is_back = false;
+-            return true;
+-        }
+-        return false;
+-    }
+-
+-    bool checkLaunch()
+-    {
+-        if (_is_launch) {
+-            _is_launch = false;
+-            return true;
+-        }
+-        return false;
+-    }
+-
+-private:
+-    std::unique_ptr<uitk::lvgl_cpp::Container> _panel;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _title;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _desc_label;
+-    std::unique_ptr<uitk::lvgl_cpp::Container> _btn_container;
+-    std::unique_ptr<uitk::lvgl_cpp::Button> _btn_back;
+-    std::unique_ptr<uitk::lvgl_cpp::Button> _btn_launch;
+-    lv_image_dsc_t _bg_image;
+-
+-    bool _is_back   = false;
+-    bool _is_launch = false;
+-};
+-
+-/**
+- * @brief
+- *
+- */
+-class AppInstallPage {
+-public:
+-    AppInstallPage(const app_center::AppInfo_t& app_info)
+-    {
+-        _panel = std::make_unique<uitk::lvgl_cpp::Container>(lv_screen_active());
+-        _panel->setBgColor(lv_color_hex(0xFFFAD6));
+-        _panel->align(LV_ALIGN_CENTER, 0, 0);
+-        _panel->setBorderWidth(0);
+-        _panel->setSize(320, 240);
+-        _panel->setRadius(0);
+-        _panel->setPadding(0, 0, 0, 0);
+-
+-        _bg_image = assets::get_image("app_center_bg.png");
+-        if (_bg_image.data_size != 0) {
+-            lv_obj_set_style_bg_image_src(_panel->get(), &_bg_image, LV_PART_MAIN);
+-        }
+-
+-        _title = std::make_unique<uitk::lvgl_cpp::Label>(*_panel);
+-        _title->setText(app_info.name);
+-        _title->setTextFont(&lv_font_montserrat_20);
+-        _title->setTextColor(lv_color_hex(0x47330A));
+-        _title->setTextAlign(LV_TEXT_ALIGN_CENTER);
+-        _title->align(LV_ALIGN_TOP_MID, 0, 15);
+-        _title->setLongMode(LV_LABEL_LONG_SCROLL_CIRCULAR);
+-        _title->setWidth(220);
+-        _title->setHeight(28);
+-
+-        _tips = std::make_unique<uitk::lvgl_cpp::Label>(*_panel);
+-        _tips->setText("Downloading...");
+-        _tips->setTextFont(&lv_font_montserrat_16);
+-        _tips->setTextColor(lv_color_hex(0xA36135));
+-        _tips->setTextAlign(LV_TEXT_ALIGN_CENTER);
+-        _tips->setLongMode(LV_LABEL_LONG_SCROLL_CIRCULAR);
+-        _tips->align(LV_ALIGN_CENTER, 0, -40);
+-
+-        _progress_bar = std::make_unique<uitk::lvgl_cpp::Bar>(*_panel);
+-        _progress_bar->setSize(260, 92);
+-        _progress_bar->setRadius(18);
+-        _progress_bar->setRadius(0, LV_PART_INDICATOR);
+-        _progress_bar->align(LV_ALIGN_CENTER, 0, 23);
+-        _progress_bar->setBgColor(lv_color_hex(0xFFDF9A));
+-        _progress_bar->setBgColor(lv_color_hex(0xFF9E5D), LV_PART_INDICATOR);
+-        _progress_bar->setBgOpa(LV_OPA_COVER);
+-        _progress_bar->setRange(0, 100);
+-        _progress_bar->setValue(0);
+-
+-        _progress = std::make_unique<uitk::lvgl_cpp::Label>(*_panel);
+-        _progress->setTextFont(&lv_font_montserrat_24);
+-        _progress->setTextColor(lv_color_hex(0x47330A));
+-        _progress->align(LV_ALIGN_CENTER, 0, 23);
+-        _progress->setText("");
+-    }
+-
+-    void setProgress(int percent)
+-    {
+-        _progress->setText(fmt::format("{}%", percent));
+-        _progress_bar->setValue(percent);
+-    }
+-
+-private:
+-    std::unique_ptr<uitk::lvgl_cpp::Container> _panel;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _title;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _tips;
+-    std::unique_ptr<uitk::lvgl_cpp::Label> _progress;
+-    std::unique_ptr<uitk::lvgl_cpp::Bar> _progress_bar;
+-    lv_image_dsc_t _bg_image;
+-};
+-
+-}  // namespace view
+diff --git a/firmware/main/apps/app_setup/app_setup.cpp b/firmware/main/apps/app_setup/app_setup.cpp
+index eb14452..14d09b9 100644
+--- a/firmware/main/apps/app_setup/app_setup.cpp
++++ b/firmware/main/apps/app_setup/app_setup.cpp
+@@ -124,12 +124,6 @@ void AppSetup::onOpen()
+                          _worker       = std::make_unique<FwVersionWorker>();
+                      }
+                  }},
+-                {"Check for Updates",
+-                 [&]() {
+-                     _destroy_menu    = true;
+-                     _need_warm_reset = true;
+-                     _worker          = std::make_unique<SystemUpdateWorker>();
+-                 }},
+                 //  {"Factory Reset",
+                 //   [&]() {
+                 //       _destroy_menu = true;
+diff --git a/firmware/main/apps/app_setup/workers/about.cpp b/firmware/main/apps/app_setup/workers/about.cpp
+index 43ad8ae..508748e 100644
+--- a/firmware/main/apps/app_setup/workers/about.cpp
++++ b/firmware/main/apps/app_setup/workers/about.cpp
+@@ -295,35 +295,3 @@ void FwVersionWorker::update()
+         _egg->update();
+     }
+ }
+-
+-SystemUpdateWorker::SystemUpdateWorker()
+-{
+-    auto loading_page = std::make_unique<view::LoadingPage>(0xF6F6F6, 0x26206A);
+-    GetHAL().lvglUnlock();
+-
+-    // Start network
+-    GetHAL().startNetwork([&](std::string_view msg) {
+-        LvglLockGuard lock;
+-        loading_page->setMessage(msg);
+-    });
+-
+-    // Update Firmware
+-    bool result = GetHAL().updateFirmware([&](std::string_view msg) {
+-        LvglLockGuard lock;
+-        loading_page->setMessage(msg);
+-    });
+-
+-    // Hold the result for a while
+-    GetHAL().delay(3000);
+-
+-    GetHAL().lvglLock();
+-    _is_done = true;
+-}
+-
+-SystemUpdateWorker::~SystemUpdateWorker()
+-{
+-}
+-
+-void SystemUpdateWorker::update()
+-{
+-}
+diff --git a/firmware/main/apps/app_setup/workers/workers.h b/firmware/main/apps/app_setup/workers/workers.h
+index a48a251..f87af19 100644
+--- a/firmware/main/apps/app_setup/workers/workers.h
++++ b/firmware/main/apps/app_setup/workers/workers.h
+@@ -251,13 +251,6 @@ private:
+  * @brief
+  *
+  */
+-class SystemUpdateWorker : public WorkerBase {
+-public:
+-    SystemUpdateWorker();
+-    ~SystemUpdateWorker();
+-    void update() override;
+-};
+-
+ /**
+  * @brief
+  *
+diff --git a/firmware/main/apps/apps.h b/firmware/main/apps/apps.h
+index 77cc9b7..2670b84 100644
+--- a/firmware/main/apps/apps.h
++++ b/firmware/main/apps/apps.h
+@@ -9,6 +9,5 @@
+ #include "app_avatar/app_avatar.h"
+ #include "app_setup/app_setup.h"
+ #include "app_espnow_ctrl/app_espnow_ctrl.h"
+-#include "app_app_center/app_app_center.h"
+ #include "app_ezdata/app_ezdata.h"
+ #include "app_dance/app_dance.h"
+diff --git a/firmware/main/hal/board/hal_bridge.h b/firmware/main/hal/board/hal_bridge.h
+index aab08f0..9d79888 100644
+--- a/firmware/main/hal/board/hal_bridge.h
++++ b/firmware/main/hal/board/hal_bridge.h
+@@ -8,6 +8,7 @@
+ #include <cstdint>
+ #include <lvgl.h>
+ #include <driver/i2c_master.h>
++#include <string>
+ #include <string_view>
+ 
+ namespace hal_bridge {
+@@ -41,6 +42,7 @@ TouchPoint_t get_touch_point();
+ bool is_xiaozhi_mode();
+ void set_xiaozhi_mode(bool mode);
+ void toggle_xiaozhi_chat_state();
++void start_proactive_conversation(const std::string& prompt);
+ 
+ void disply_lvgl_lock();
+ void disply_lvgl_unlock();
+@@ -50,6 +52,7 @@ void xiaozhi_board_init();
+ void start_xiaozhi_app();
+ bool is_xiaozhi_ready();
+ bool is_xiaozhi_idle();
++bool is_xiaozhi_voice_detected();
+ XiaozhiConfig_t get_xiaozhi_config();
+ void set_xiaozhi_config(const XiaozhiConfig_t& config);
+ 
+diff --git a/firmware/main/hal/board/stackchan.cc b/firmware/main/hal/board/stackchan.cc
+index 7349b14..c48835d 100644
+--- a/firmware/main/hal/board/stackchan.cc
++++ b/firmware/main/hal/board/stackchan.cc
+@@ -234,7 +234,6 @@ private:
+ 
+ class M5StackCoreS3Board : public WifiBoard {
+ private:
+-    static constexpr int kPowerSaveSleepDelaySeconds = 300;
+     static constexpr int kPowerStatePollIntervalMs   = 1000;
+ 
+     i2c_master_bus_handle_t i2c_bus_;
+@@ -244,7 +243,7 @@ private:
+     LvglDisplay* display_;
+     StackChanCamera* camera_;
+     esp_timer_handle_t touchpad_timer_;
+-    PowerSaveTimer* power_save_timer_;
++    PowerSaveTimer* power_save_timer_ = nullptr;
+     hal_bridge::XiaozhiConfig_t xiaozhi_config_;
+     bool last_power_save_enabled_      = false;
+     int64_t last_power_state_check_ms_ = 0;
+@@ -256,6 +255,9 @@ private:
+ 
+     void UpdatePowerSaveEnabled(bool has_external_power, bool is_discharging)
+     {
++        if (power_save_timer_ == nullptr) {
++            return;
++        }
+         const bool should_enable_power_save = ShouldEnablePowerSave(has_external_power, is_discharging);
+         if (should_enable_power_save == last_power_save_enabled_) {
+             return;
+@@ -282,28 +284,7 @@ private:
+     void InitializePowerSaveTimer()
+     {
+         xiaozhi_config_ = hal_bridge::get_xiaozhi_config();
+-
+-        const int seconds_to_shutdown = xiaozhi_config_.idleShutdownTimeSeconds > 0
+-                                            ? static_cast<int>(xiaozhi_config_.idleShutdownTimeSeconds)
+-                                            : -1;
+-        const int seconds_to_sleep    = seconds_to_shutdown == -1
+-                                            ? kPowerSaveSleepDelaySeconds
+-                                            : std::min(kPowerSaveSleepDelaySeconds, seconds_to_shutdown);
+-
+-        ESP_LOGI(TAG, "Init power save timer: sleep=%d s, shutdown=%d s, allow_shutdown_when_charging=%d",
+-                 seconds_to_sleep, seconds_to_shutdown, xiaozhi_config_.allowShutdownWhenCharging);
+-
+-        power_save_timer_ = new PowerSaveTimer(-1, seconds_to_sleep, seconds_to_shutdown);
+-        power_save_timer_->OnEnterSleepMode([this]() {
+-            GetDisplay()->SetPowerSaveMode(true);
+-            // GetBacklight()->SetBrightness(10);
+-        });
+-        power_save_timer_->OnExitSleepMode([this]() {
+-            GetDisplay()->SetPowerSaveMode(false);
+-            GetBacklight()->RestoreBrightness();
+-        });
+-        power_save_timer_->OnShutdownRequest([this]() { pmic_->PowerOff(); });
+-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
++        ESP_LOGI(TAG, "Yuki always-on mode: idle sleep and automatic shutdown are disabled");
+     }
+ 
+     void InitializeI2c()
+@@ -529,7 +510,7 @@ public:
+         static bool last_discharging = false;
+         charging                     = pmic_->IsCharging();
+         discharging                  = pmic_->IsDischarging();
+-        if (discharging != last_discharging) {
++        if (power_save_timer_ != nullptr && discharging != last_discharging) {
+             power_save_timer_->SetEnabled(discharging);
+             last_discharging = discharging;
+         }
+@@ -540,7 +521,7 @@ public:
+ 
+     virtual void SetPowerSaveLevel(PowerSaveLevel level) override
+     {
+-        if (level != PowerSaveLevel::LOW_POWER) {
++        if (power_save_timer_ != nullptr && level != PowerSaveLevel::LOW_POWER) {
+             power_save_timer_->WakeUp();
+         }
+         WifiBoard::SetPowerSaveLevel(level);
+@@ -659,3 +640,13 @@ void hal_bridge::toggle_xiaozhi_chat_state()
+     }
+     app.ToggleChatState();
+ }
++
++bool hal_bridge::is_xiaozhi_voice_detected()
++{
++    return Application::GetInstance().IsVoiceDetected();
++}
++
++void hal_bridge::start_proactive_conversation(const std::string& prompt)
++{
++    Application::GetInstance().StartProactiveConversation(prompt);
++}
+diff --git a/firmware/main/hal/board/stackchan_camera.cc b/firmware/main/hal/board/stackchan_camera.cc
+index 5ae1912..b5cd9a0 100644
+--- a/firmware/main/hal/board/stackchan_camera.cc
++++ b/firmware/main/hal/board/stackchan_camera.cc
+@@ -394,6 +394,8 @@ void StackChanCamera::SetExplainUrl(const std::string& url, const std::string& t
+ 
+ bool StackChanCamera::Capture()
+ {
++    std::lock_guard<std::mutex> lock(capture_mutex_);
++
+     if (encoder_thread_.joinable()) {
+         encoder_thread_.join();
+     }
+@@ -851,8 +853,50 @@ bool StackChanCamera::Capture()
+     return true;
+ }
+ 
++bool StackChanCamera::CaptureForVision(uint8_t* destination, size_t capacity, size_t& length, int& width, int& height,
++                                       int& format)
++{
++    if (destination == nullptr || capacity == 0) {
++        return false;
++    }
++
++    std::lock_guard<std::mutex> lock(capture_mutex_);
++    if (!streaming_on_ || video_fd_ < 0) {
++        return false;
++    }
++
++    struct v4l2_buffer buffer = {};
++    buffer.type               = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++    buffer.memory             = V4L2_MEMORY_MMAP;
++    if (ioctl(video_fd_, VIDIOC_DQBUF, &buffer) != 0) {
++        ESP_LOGE(TAG, "Vision VIDIOC_DQBUF failed, errno=%d(%s)", errno, strerror(errno));
++        return false;
++    }
++
++    bool success = false;
++    if (buffer.index < mmap_buffers_.size() && buffer.bytesused <= capacity) {
++        memcpy(destination, mmap_buffers_[buffer.index].start, buffer.bytesused);
++        length = buffer.bytesused;
++        width  = frame_.width;
++        height = frame_.height;
++        format = sensor_format_ == V4L2_PIX_FMT_YUV422P ? V4L2_PIX_FMT_YUYV : sensor_format_;
++        success = true;
++    } else {
++        ESP_LOGW(TAG, "Vision frame does not fit: index=%lu bytes=%lu capacity=%lu", buffer.index, buffer.bytesused,
++                 capacity);
++    }
++
++    if (ioctl(video_fd_, VIDIOC_QBUF, &buffer) != 0) {
++        ESP_LOGE(TAG, "Vision VIDIOC_QBUF failed, errno=%d(%s)", errno, strerror(errno));
++        return false;
++    }
++    return success;
++}
++
+ bool StackChanCamera::StreamCaptures()
+ {
++    std::lock_guard<std::mutex> lock(capture_mutex_);
++
+     if (encoder_thread_.joinable()) {
+         encoder_thread_.join();
+     }
+@@ -1030,44 +1074,16 @@ std::string StackChanCamera::Explain(const std::string& question)
+         throw std::runtime_error("Image explain URL or token is not set");
+     }
+ 
+-    // 创建局部的 JPEG 队列, 40 entries is about to store 512 * 40 = 20480 bytes of JPEG data
+-    QueueHandle_t jpeg_queue = xQueueCreate(40, sizeof(JpegChunk));
+-    if (jpeg_queue == nullptr) {
+-        ESP_LOGE(TAG, "Failed to create JPEG queue");
+-        throw std::runtime_error("Failed to create JPEG queue");
++    uint8_t* jpeg_data = nullptr;
++    size_t jpeg_size   = 0;
++    const uint16_t width = frame_.width ? frame_.width : 320;
++    const uint16_t height = frame_.height ? frame_.height : 240;
++    if (!image_to_jpeg(frame_.data, frame_.len, width, height, frame_.format, 72, &jpeg_data, &jpeg_size) ||
++        jpeg_data == nullptr || jpeg_size == 0) {
++        ESP_LOGE(TAG, "JPEG encoder failed or produced empty output");
++        throw std::runtime_error("Failed to encode image to JPEG");
+     }
+-
+-    // We spawn a thread to encode the image to JPEG using optimized encoder (cost about 500ms and 8KB SRAM)
+-    encoder_thread_ = std::thread([this, jpeg_queue]() {
+-        uint16_t w             = frame_.width ? frame_.width : 320;
+-        uint16_t h             = frame_.height ? frame_.height : 240;
+-        v4l2_pix_fmt_t enc_fmt = frame_.format;
+-        bool ok                = image_to_jpeg_cb(
+-                           frame_.data, frame_.len, w, h, enc_fmt, 80,
+-                           [](void* arg, size_t index, const void* data, size_t len) -> size_t {
+-                auto jpeg_queue = static_cast<QueueHandle_t>(arg);
+-                JpegChunk chunk = {.data = nullptr, .len = len};
+-                if (index == 0 && data != nullptr && len > 0) {
+-                    chunk.data = (uint8_t*)heap_caps_aligned_alloc(16, len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+-                    if (chunk.data == nullptr) {
+-                        ESP_LOGE(TAG, "Failed to allocate %zu bytes for JPEG chunk", len);
+-                        chunk.len = 0;
+-                    } else {
+-                        memcpy(chunk.data, data, len);
+-                    }
+-                } else {
+-                    chunk.len = 0;  // Sentinel or error
+-                }
+-                xQueueSend(jpeg_queue, &chunk, portMAX_DELAY);
+-                return len;
+-                           },
+-                           jpeg_queue);
+-
+-        if (!ok) {
+-            JpegChunk chunk = {.data = nullptr, .len = 0};
+-            xQueueSend(jpeg_queue, &chunk, portMAX_DELAY);
+-        }
+-    });
++    std::unique_ptr<uint8_t, decltype(&heap_caps_free)> jpeg_guard(jpeg_data, heap_caps_free);
+ 
+     auto network = Board::GetInstance().GetNetwork();
+     auto http    = network->CreateHttp(3);
+@@ -1084,17 +1100,6 @@ std::string StackChanCamera::Explain(const std::string& question)
+     http->SetHeader("Transfer-Encoding", "chunked");
+     if (!http->Open("POST", explain_url_)) {
+         ESP_LOGE(TAG, "Failed to connect to explain URL");
+-        // Clear the queue
+-        encoder_thread_.join();
+-        JpegChunk chunk;
+-        while (xQueueReceive(jpeg_queue, &chunk, portMAX_DELAY) == pdPASS) {
+-            if (chunk.data != nullptr) {
+-                heap_caps_free(chunk.data);
+-            } else {
+-                break;
+-            }
+-        }
+-        vQueueDelete(jpeg_queue);
+         throw std::runtime_error("Failed to connect to explain URL");
+     }
+ 
+@@ -1118,31 +1123,7 @@ std::string StackChanCamera::Explain(const std::string& question)
+     }
+ 
+     // 第三块：JPEG数据
+-    size_t total_sent   = 0;
+-    bool saw_terminator = false;
+-    while (true) {
+-        JpegChunk chunk;
+-        if (xQueueReceive(jpeg_queue, &chunk, portMAX_DELAY) != pdPASS) {
+-            ESP_LOGE(TAG, "Failed to receive JPEG chunk");
+-            break;
+-        }
+-        if (chunk.data == nullptr) {
+-            saw_terminator = true;
+-            break;  // The last chunk
+-        }
+-        http->Write((const char*)chunk.data, chunk.len);
+-        total_sent += chunk.len;
+-        heap_caps_free(chunk.data);
+-    }
+-    // Wait for the encoder thread to finish
+-    encoder_thread_.join();
+-    // 清理队列
+-    vQueueDelete(jpeg_queue);
+-
+-    if (!saw_terminator || total_sent == 0) {
+-        ESP_LOGE(TAG, "JPEG encoder failed or produced empty output");
+-        throw std::runtime_error("Failed to encode image to JPEG");
+-    }
++    http->Write(reinterpret_cast<const char*>(jpeg_data), jpeg_size);
+ 
+     {
+         // 第四块：multipart尾部
+@@ -1155,6 +1136,7 @@ std::string StackChanCamera::Explain(const std::string& question)
+ 
+     if (http->GetStatusCode() != 200) {
+         ESP_LOGE(TAG, "Failed to upload photo, status code: %d", http->GetStatusCode());
++        http->Close();
+         throw std::runtime_error("Failed to upload photo");
+     }
+ 
+@@ -1164,6 +1146,6 @@ std::string StackChanCamera::Explain(const std::string& question)
+     // Get remain task stack size
+     size_t remain_stack_size = uxTaskGetStackHighWaterMark(nullptr);
+     ESP_LOGI(TAG, "Explain image size=%d bytes, compressed size=%d, remain stack size=%d, question=%s\n%s",
+-             (int)frame_.len, (int)total_sent, (int)remain_stack_size, question.c_str(), result.c_str());
++             (int)frame_.len, (int)jpeg_size, (int)remain_stack_size, question.c_str(), result.c_str());
+     return result;
+ }
+diff --git a/firmware/main/hal/board/stackchan_camera.h b/firmware/main/hal/board/stackchan_camera.h
+index 1f80c1f..65e5925 100644
+--- a/firmware/main/hal/board/stackchan_camera.h
++++ b/firmware/main/hal/board/stackchan_camera.h
+@@ -5,6 +5,7 @@
+ #include <lvgl.h>
+ #include <thread>
+ #include <memory>
++#include <mutex>
+ #include <vector>
+ 
+ #include <freertos/FreeRTOS.h>
+@@ -43,6 +44,7 @@ private:
+     std::string explain_url_;
+     std::string explain_token_;
+     std::thread encoder_thread_;
++    std::mutex capture_mutex_;
+ 
+ public:
+     StackChanCamera(const esp_video_init_config_t& config);
+@@ -50,6 +52,8 @@ public:
+ 
+     virtual void SetExplainUrl(const std::string& url, const std::string& token);
+     virtual bool Capture() override;
++    bool CaptureForVision(uint8_t* destination, size_t capacity, size_t& length, int& width, int& height,
++                          int& format);
+     bool StreamCaptures();
+ 
+     // 翻转控制函数
+diff --git a/firmware/main/hal/board/stackchan_display.cc b/firmware/main/hal/board/stackchan_display.cc
+index 7459888..d08bd0d 100644
+--- a/firmware/main/hal/board/stackchan_display.cc
++++ b/firmware/main/hal/board/stackchan_display.cc
+@@ -15,6 +15,8 @@
+ #include <lvgl.h>
+ #include <lvgl_theme.h>
+ #include <stackchan/stackchan.h>
++#include <stackchan/vision/yuki_vision.h>
++#include <stackchan/curiosity/yuki_curiosity.h>
+ #include <assets/lang_config.h>
+ #include <hal/hal.h>
+ 
+@@ -179,6 +181,18 @@ StackChanAvatarDisplay::StackChanAvatarDisplay(esp_lcd_panel_io_handle_t panel_i
+     };
+     esp_timer_create(&preview_timer_args, &preview_timer_);
+ 
++    esp_timer_create_args_t notification_timer_args = {
++        .callback =
++            [](void* arg) {
++                static_cast<StackChanAvatarDisplay*>(arg)->ClearChatMessages();
++            },
++        .arg                   = this,
++        .dispatch_method       = ESP_TIMER_TASK,
++        .name                  = "yuki_notice",
++        .skip_unhandled_events = true,
++    };
++    esp_timer_create(&notification_timer_args, &notification_timer_);
++
+     // Create boot logo label if not warm boot
+     if (GetHAL().getWarmRebootTarget() < 0) {
+         ESP_LOGI(TAG, "Create boot logo label");
+@@ -203,6 +217,11 @@ StackChanAvatarDisplay::~StackChanAvatarDisplay()
+         esp_timer_delete(preview_timer_);
+     }
+ 
++    if (notification_timer_ != nullptr) {
++        esp_timer_stop(notification_timer_);
++        esp_timer_delete(notification_timer_);
++    }
++
+     if (preview_image_ != nullptr) {
+         lv_obj_del(preview_image_);
+     }
+@@ -249,9 +268,9 @@ void StackChanAvatarDisplay::SetupUI()
+ 
+     DisplayLockGuard lock(this);
+ 
+-    ESP_LOGI(TAG, "Creating Stack-chan Avatar...");
++    ESP_LOGI(TAG, "Creating Yuki Avatar...");
+ 
+-    auto avatar = std::make_unique<DefaultAvatar>();
++    auto avatar = std::make_unique<YukiAvatar>();
+     avatar->init(lv_screen_active());
+     avatar->getPanel()->onClick().connect([]() {
+         static uint32_t last_toggle_tick = 0;
+@@ -271,6 +290,9 @@ void StackChanAvatarDisplay::SetupUI()
+     blink_modifier_id_ = stackchan.addModifier(std::make_unique<BlinkModifier>());
+     stackchan.addModifier(std::make_unique<HeadPetModifier>());
+     stackchan.addModifier(std::make_unique<ImuEventModifier>());
++    stackchan.addModifier(std::make_unique<YukiFaceTrackingModifier>());
++    StartYukiVision();
++    StartYukiCuriosity();
+ 
+     preview_image_ = lv_image_create(lv_screen_active());
+     lv_obj_set_size(preview_image_, 320, 240);
+@@ -279,8 +301,9 @@ void StackChanAvatarDisplay::SetupUI()
+ 
+     // GetHAL().startStackChanAutoUpdate(24);
+ 
+-    auto config        = hal_bridge::get_xiaozhi_config();
+-    idle_motion_level_ = config.idleRandomMovementLevel;
++    // Yuki stays physically still before wake-up. Face tracking owns the head
++    // only while a conversation is active; idle character animation is visual.
++    idle_motion_level_ = 0;
+ 
+     ESP_LOGI(TAG, "Avatar created and started");
+ }
+@@ -356,6 +379,8 @@ void StackChanAvatarDisplay::SetEmotion(const char* emotion)
+         if (idle_motion_modifier_id_ >= 0) {
+             stackchan.removeModifier(idle_motion_modifier_id_);
+             idle_motion_modifier_id_ = -1;
++        }
++        if (idle_expression_modifier_id_ >= 0) {
+             stackchan.removeModifier(idle_expression_modifier_id_);
+             idle_expression_modifier_id_ = -1;
+         }
+@@ -393,6 +418,10 @@ void StackChanAvatarDisplay::SetChatMessage(const char* role, const char* conten
+ 
+     DisplayLockGuard lock(this);
+ 
++    if (notification_timer_ != nullptr) {
++        esp_timer_stop(notification_timer_);
++    }
++
+     if (strcmp(role, "system") == 0) {
+         stackchan.avatar().setSpeech(content);
+     } else if (strcmp(role, "assistant") == 0) {
+@@ -488,14 +517,20 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
+     }
+ 
+     auto& avatar = stackchan.avatar();
+-    auto& motion = stackchan.motion();
+ 
+     DisplayLockGuard lock(this);
+ 
+-    bool is_idle      = false;
+-    bool is_listening = false;
++    if (notification_timer_ != nullptr) {
++        esp_timer_stop(notification_timer_);
++    }
++
++    bool is_idle = false;
+ 
+     if (strcmp(status, Lang::Strings::LISTENING) == 0) {
++        // TLS/MQTT setup has completed by the time listening begins. Loading
++        // the face model earlier can starve the connection handshake.
++        EnableYukiVision();
++
+         if (speaking_modifier_id_ >= 0) {
+             // Start speaking
+             stackchan.removeModifier(speaking_modifier_id_);
+@@ -503,8 +538,10 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
+             speaking_modifier_id_ = -1;
+         }
+ 
+-        GetHAL().setRgbColor(0, 0, 50, 0);
+-        GetHAL().refreshRgb();
++        stackchan.leftNeonLight().setDuration(0.25f);
++        stackchan.rightNeonLight().setDuration(0.25f);
++        stackchan.leftNeonLight().setColor(4, 34, 42);
++        stackchan.rightNeonLight().setColor(4, 34, 42);
+ 
+     } else if (strcmp(status, Lang::Strings::STANDBY) == 0) {
+         _is_xiaozhi_ready = true;
+@@ -518,27 +555,28 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
+ 
+         is_idle = true;
+ 
+-        GetHAL().setRgbColor(0, 0, 0, 0);
+-        GetHAL().refreshRgb();
++        stackchan.leftNeonLight().setDuration(0.35f);
++        stackchan.rightNeonLight().setDuration(0.35f);
++        stackchan.leftNeonLight().setColor(0, 0, 0);
++        stackchan.rightNeonLight().setColor(0, 0, 0);
+ 
+     } else if (strcmp(status, Lang::Strings::SPEAKING) == 0) {
+         if (speaking_modifier_id_ < 0) {
+-            speaking_modifier_id_ = stackchan.addModifier(std::make_unique<SpeakingModifier>(0, 180, false));
++            speaking_modifier_id_ = stackchan.addModifier(std::make_unique<SpeakingModifier>(0, 180, true));
+         }
+ 
+-        GetHAL().setRgbColor(0, 0, 0, 50);
+-        GetHAL().refreshRgb();
++        stackchan.leftNeonLight().setDuration(0.18f);
++        stackchan.rightNeonLight().setDuration(0.18f);
++        stackchan.leftNeonLight().setColor(3, 8, 12);
++        stackchan.rightNeonLight().setColor(10, 3, 6);
+     } else {
+         avatar.setSpeech(status);
+     }
+ 
+     if (is_idle) {
+-        // Start idle motion
+-        ESP_LOGW(TAG, "Start idle motion");
+-        if (idle_motion_modifier_id_ < 0) {
+-            if (idle_motion_level_ > 0) {
+-                CreateIdleMotionModifier();
+-            }
++        // Keep facial idle animation, but never install the random head-motion modifier.
++        ESP_LOGW(TAG, "Start idle expression (physical head remains still)");
++        if (idle_expression_modifier_id_ < 0) {
+             idle_expression_modifier_id_ = stackchan.addModifier(std::make_unique<IdleExpressionModifier>());
+         }
+ 
+@@ -549,6 +587,8 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
+         if (idle_motion_modifier_id_ >= 0) {
+             stackchan.removeModifier(idle_motion_modifier_id_);
+             idle_motion_modifier_id_ = -1;
++        }
++        if (idle_expression_modifier_id_ >= 0) {
+             stackchan.removeModifier(idle_expression_modifier_id_);
+             idle_expression_modifier_id_ = -1;
+         }
+@@ -570,4 +610,18 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
+ 
+ void StackChanAvatarDisplay::ShowNotification(const char* notification, int duration_ms)
+ {
++    auto& stackchan = GetStackChan();
++    if (!stackchan.hasAvatar() || notification == nullptr) {
++        return;
++    }
++
++    DisplayLockGuard lock(this);
++    stackchan.avatar().setSpeech(notification);
++
++    if (notification_timer_ != nullptr) {
++        esp_timer_stop(notification_timer_);
++        if (duration_ms > 0) {
++            ESP_ERROR_CHECK(esp_timer_start_once(notification_timer_, static_cast<uint64_t>(duration_ms) * 1000));
++        }
++    }
+ }
+diff --git a/firmware/main/hal/board/stackchan_display.h b/firmware/main/hal/board/stackchan_display.h
+index f16f1f3..22bf99c 100644
+--- a/firmware/main/hal/board/stackchan_display.h
++++ b/firmware/main/hal/board/stackchan_display.h
+@@ -23,6 +23,7 @@ private:
+ 
+     lv_obj_t* preview_image_                         = nullptr;
+     esp_timer_handle_t preview_timer_                = nullptr;
++    esp_timer_handle_t notification_timer_           = nullptr;
+     std::unique_ptr<LvglImage> preview_image_cached_ = nullptr;
+ 
+     void CreateIdleMotionModifier();
+diff --git a/firmware/main/hal/hal.h b/firmware/main/hal/hal.h
+index b8d3c80..88880dc 100644
+--- a/firmware/main/hal/hal.h
++++ b/firmware/main/hal/hal.h
+@@ -77,19 +77,6 @@ enum class CommonLogLevel {
+  * @brief
+  *
+  */
+-namespace app_center {
+-
+-struct AppInfo_t {
+-    std::string name;
+-    std::string iconUrl;
+-    std::string description;
+-    std::string firmwareUrl;
+-};
+-
+-using AppInfoList_t = std::vector<AppInfo_t>;
+-
+-};  // namespace app_center
+-
+ /**
+  * @brief
+  *
+@@ -278,10 +265,6 @@ public:
+     WifiStatus getWifiStatus();
+     void startSntp();
+ 
+-    /* -------------------------------- App center ------------------------------- */
+-    app_center::AppInfoList_t fetchAppList();
+-    void launchApp(std::string_view url, std::function<void(int)> onProgress);
+-
+     /* --------------------------------- EzData --------------------------------- */
+     void startEzDataService(std::function<void(std::string_view)> onStartLog);
+     uitk::Signal<std::string_view> onEzdataPairCode;
+@@ -291,9 +274,6 @@ public:
+     bool updateAccountInfo(std::function<void(std::string_view)> onLog);
+     bool unbindAccount(std::function<void(std::string_view)> onLog);
+ 
+-    /* ----------------------------------- OTA ---------------------------------- */
+-    bool updateFirmware(std::function<void(std::string_view)> onLog);
+-
+     /* ---------------------------------- Audio --------------------------------- */
+     void setSpeakerVolume(uint8_t volume, bool permanent = false);
+     uint8_t getSpeakerVolume();
+diff --git a/firmware/main/hal/hal_app_center.cpp b/firmware/main/hal/hal_app_center.cpp
+deleted file mode 100644
+index 2dd1e49..0000000
+--- a/firmware/main/hal/hal_app_center.cpp
++++ /dev/null
+@@ -1,126 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#include "hal.h"
+-#include "utils/ota/ota.h"
+-#include "utils/secret_logic/secret_logic.h"
+-#include <mooncake_log.h>
+-#include <memory>
+-#include <board.h>
+-#include <cJSON.h>
+-
+-static const std::string_view _tag = "HAL-AppCenter";
+-
+-static std::string get_app_info_list_url()
+-{
+-    return secret_logic::get_server_url() + "/stackChan/apps";
+-}
+-
+-static const char *get_json_string(cJSON *item, std::initializer_list<const char *> keys)
+-{
+-    for (const auto *key : keys) {
+-        cJSON *value = cJSON_GetObjectItemCaseSensitive(item, key);
+-        if (cJSON_IsString(value) && value->valuestring != nullptr) {
+-            return value->valuestring;
+-        }
+-    }
+-
+-    return nullptr;
+-}
+-
+-app_center::AppInfoList_t Hal::fetchAppList()
+-{
+-    app_center::AppInfoList_t app_list;
+-    auto &board  = Board::GetInstance();
+-    auto network = board.GetNetwork();
+-
+-    auto http = network->CreateHttp(0);
+-    if (!http->Open("GET", get_app_info_list_url())) {
+-        mclog::tagError(_tag, "failed to open http connection");
+-        return app_list;
+-    }
+-
+-    if (http->GetStatusCode() != 200) {
+-        mclog::tagError(_tag, "failed to fetch app list, status code: {}", http->GetStatusCode());
+-        http->Close();
+-        return app_list;
+-    }
+-
+-    std::string data = http->ReadAll();
+-    http->Close();
+-
+-    cJSON *root = cJSON_Parse(data.c_str());
+-    if (root == NULL) {
+-        mclog::tagError(_tag, "failed to parse json response");
+-        return app_list;
+-    }
+-
+-    cJSON *app_array = nullptr;
+-    if (cJSON_IsArray(root)) {
+-        app_array = root;
+-    } else if (cJSON_IsObject(root)) {
+-        cJSON *code = cJSON_GetObjectItemCaseSensitive(root, "code");
+-        if (cJSON_IsNumber(code) && code->valueint != 0) {
+-            cJSON *message = cJSON_GetObjectItemCaseSensitive(root, "message");
+-            mclog::tagError(_tag, "failed to fetch app list, code: {}, message: {}", code->valueint,
+-                            cJSON_IsString(message) ? message->valuestring : "unknown");
+-            cJSON_Delete(root);
+-            return app_list;
+-        }
+-
+-        app_array = cJSON_GetObjectItemCaseSensitive(root, "data");
+-        if (!cJSON_IsArray(app_array)) {
+-            mclog::tagError(_tag, "invalid app list response: data is not an array");
+-            cJSON_Delete(root);
+-            return app_list;
+-        }
+-    }
+-
+-    if (cJSON_IsArray(app_array)) {
+-        cJSON *item = NULL;
+-        cJSON_ArrayForEach(item, app_array)
+-        {
+-            app_center::AppInfo_t info;
+-
+-            if (const char *name = get_json_string(item, {"appName", "name"})) {
+-                info.name = name;
+-            }
+-
+-            if (const char *icon = get_json_string(item, {"iconUrl", "appIcon", "icon"})) {
+-                info.iconUrl = icon;
+-            }
+-
+-            if (const char *desc = get_json_string(item, {"description", "appDescription", "desc"})) {
+-                info.description = desc;
+-            }
+-
+-            if (const char *url = get_json_string(item, {"firmwareUrl", "downloadUrl", "otaUrl", "url"})) {
+-                info.firmwareUrl = url;
+-            }
+-
+-            app_list.push_back(info);
+-        }
+-    } else {
+-        mclog::tagError(_tag, "invalid app list response: unexpected json shape");
+-    }
+-
+-    cJSON_Delete(root);
+-    return app_list;
+-}
+-
+-static std::function<void(int)> _on_progress = nullptr;
+-static void ota_callback(int progress)
+-{
+-    if (_on_progress) {
+-        _on_progress(progress);
+-    }
+-}
+-
+-void Hal::launchApp(std::string_view url, std::function<void(int)> onProgress)
+-{
+-    mclog::tagInfo(_tag, "launching app from url: {}", url);
+-    _on_progress = onProgress;
+-    start_ota_update(url.data(), ota_callback);
+-}
+diff --git a/firmware/main/hal/hal_mcp.cpp b/firmware/main/hal/hal_mcp.cpp
+index b2dd1bc..4647f35 100644
+--- a/firmware/main/hal/hal_mcp.cpp
++++ b/firmware/main/hal/hal_mcp.cpp
+@@ -6,7 +6,9 @@
+ #include "hal.h"
+ #include <mooncake_log.h>
+ #include <mcp_server.h>
++#include <stackchan/vision/yuki_vision.h>
+ #include <stackchan/stackchan.h>
++#include <stackchan/curiosity/yuki_curiosity.h>
+ #include <apps/common/common.h>
+ #include <atomic>
+ #include <array>
+@@ -100,6 +102,21 @@ void Hal::xiaozhi_mcp_init()
+     // You can control the robot's head. Use get_yaw and get_pitch to sense current position. Use set_yaw for horizontal
+     // movement and set_pitch for vertical movement. All angles are in degrees.
+ 
++    mclog::tagInfo(_tag, "add camera.get_presence tool");
++    mcp_server.AddTool(
++        "self.camera.get_presence",
++        "Immediately report whether Yuki's always-on local camera has seen a person recently. MUST call this tool "
++        "when the user asks whether you can see them, whether they are in front of you, or whether anyone is there. "
++        "Do not claim that you lack a camera and do not ask permission. This is a fast local presence check; use "
++        "self.camera.take_photo instead when appearance, objects, text, colors, or scene details must be examined.",
++        std::vector<Property>{}, [this](const PropertyList& properties) -> ReturnValue {
++            const bool seen = stackchan::YukiFaceSeenRecently(2000);
++            auto result = fmt::format(R"({{"camera_active":true,"person_seen_recently":{}}})",
++                                      seen ? "true" : "false");
++            mclog::tagInfo(_tag, "camera presence: {}", result);
++            return result;
++        });
++
+     mclog::tagInfo(_tag, "add robot.get_head_angles tool");
+     mcp_server.AddTool("self.robot.get_head_angles",
+                        "Returns current yaw/pitch in degrees. Neutral position is {yaw:0, pitch:0}.",
+@@ -117,11 +134,11 @@ void Hal::xiaozhi_mcp_init()
+ 
+     mclog::tagInfo(_tag, "add robot.set_head_angles tool");
+     mcp_server.AddTool("self.robot.set_head_angles",
+-                       "Adjust head position. GUIDELINES: "
+-                       "1. For natural interaction, stay within +/- 45 degrees. "
+-                       "2. Only use values > 70 if the user explicitly asks to look far away/behind. "
+-                       "3. Max ranges: Yaw(-128 to 128, -128 as your left), Pitch(0 to 90, 90 as your up). "
+-                       "Speed(100-1000, 150 is natural).",
++                       "Move Yuki's physical head to absolute yaw/pitch angles. Before a visible movement request, call "
++                       "self.robot.get_head_angles and choose a target at least 15 degrees away from the current value; "
++                       "do not send (0,0) unless returning to center. For natural interaction, stay within +/-45 degrees "
++                       "yaw and 5-70 degrees pitch. Max ranges: yaw -128 to 128 (-128 is Yuki's left), pitch 3 to 87 "
++                       "(87 is up). Speed is 100-1000; 250 is natural.",
+                        PropertyList({Property("yaw", kPropertyTypeInteger, -9999, -9999, 128),
+                                      Property("pitch", kPropertyTypeInteger, -9999, -9999, 90),
+                                      Property("speed", kPropertyTypeInteger, 150, 100, 1000)}),
+@@ -135,6 +152,8 @@ void Hal::xiaozhi_mcp_init()
+                            LvglLockGuard lock;
+ 
+                            auto& motion = GetStackChan().motion();
++                           stackchan::YieldYukiFaceTracking(3000);
++                           motion.setModifyLock(false);
+                            if (pitch != -9999) {
+                                motion.pitchServo().moveWithSpeed(pitch * 10, speed);
+                            }
+@@ -296,4 +315,42 @@ void Hal::xiaozhi_mcp_init()
+ 
+             return true;
+         });
++
++    mclog::tagInfo(_tag, "add robot.configure_curiosity tool");
++    mcp_server.AddTool(
++        "self.robot.configure_curiosity",
++        "Configure Yuki's autonomous interest-guided web exploration. Interests are a short comma-separated or "
++        "natural-language description. The interval is 2-180 minutes. Yuki only starts a conversation while idle "
++        "and after recently seeing the user, so she does not talk to an empty room.",
++        PropertyList({Property("enabled", kPropertyTypeBoolean, true),
++                      Property("interval_minutes", kPropertyTypeInteger, 30, 2, 180),
++                      Property("interests", kPropertyTypeString,
++                               std::string("AI, robotics, science, and creative technology"))}),
++        [](const PropertyList& properties) -> ReturnValue {
++            YukiCuriosityConfig config;
++            config.enabled = properties["enabled"].value<bool>();
++            config.interval_minutes = properties["interval_minutes"].value<int>();
++            config.interests = properties["interests"].value<std::string>();
++            SetYukiCuriosityConfig(config);
++            return true;
++        });
++
++    mclog::tagInfo(_tag, "add robot.get_curiosity_config tool");
++    mcp_server.AddTool(
++        "self.robot.get_curiosity_config", "Get Yuki's current autonomous curiosity settings.",
++        std::vector<Property>{}, [](const PropertyList&) -> ReturnValue {
++            const auto config = GetYukiCuriosityConfig();
++            return fmt::format("enabled={}, interval_minutes={}, interests={}", config.enabled,
++                               config.interval_minutes, config.interests);
++        });
++
++    mclog::tagInfo(_tag, "add robot.share_something_now tool");
++    mcp_server.AddTool(
++        "self.robot.share_something_now",
++        "Ask Yuki to begin one interest-guided curiosity conversation as soon as she is idle and can see the user. "
++        "Use this for an explicit user request or a demo; normal autonomous exploration follows the configured interval.",
++        std::vector<Property>{}, [](const PropertyList&) -> ReturnValue {
++            RequestYukiCuriosityNow();
++            return true;
++        });
+ }
+diff --git a/firmware/main/hal/hal_ota.cpp b/firmware/main/hal/hal_ota.cpp
+deleted file mode 100644
+index 60300f4..0000000
+--- a/firmware/main/hal/hal_ota.cpp
++++ /dev/null
+@@ -1,76 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#include "hal.h"
+-#include <mooncake_log.h>
+-#include <cstdio>
+-#include <memory>
+-#include <ota.h>
+-
+-static const std::string_view _tag = "HAL-OTA";
+-
+-bool Hal::updateFirmware(std::function<void(std::string_view)> onLog)
+-{
+-    onLog("Checking firmware updates...");
+-
+-    Ota ota;
+-    esp_err_t err = ota.CheckVersion();
+-    if (err != ESP_OK) {
+-        mclog::tagError(_tag, "failed to check firmware version: {}", esp_err_to_name(err));
+-        onLog("Failed to check firmware updates");
+-        return false;
+-    }
+-
+-    if (!ota.HasNewVersion()) {
+-        ota.MarkCurrentVersionValid();
+-        mclog::tagInfo(_tag, "no new firmware version available");
+-        onLog("Already up to date");
+-        return true;
+-    }
+-
+-    const std::string &firmware_url     = ota.GetFirmwareUrl();
+-    const std::string &firmware_version = ota.GetFirmwareVersion();
+-    if (firmware_url.empty()) {
+-        mclog::tagError(_tag, "firmware update available but url is empty");
+-        onLog("Invalid firmware update info");
+-        return false;
+-    }
+-
+-    mclog::tagInfo(_tag, "new firmware available: version={}, url={}", firmware_version, firmware_url);
+-    if (!firmware_version.empty()) {
+-        onLog(std::string("New firmware found: ") + firmware_version);
+-    } else {
+-        onLog("New firmware found");
+-    }
+-
+-    onLog("Starting firmware upgrade...");
+-    int last_reported_progress = -1;
+-    bool upgrade_success       = Ota::Upgrade(firmware_url, [&](int progress, size_t speed) {
+-        if (progress == last_reported_progress) {
+-            return;
+-        }
+-
+-        last_reported_progress = progress;
+-
+-        char msg[48];
+-        std::snprintf(msg, sizeof(msg), "Upgrading firmware: %d%% at %uKB/s", progress,
+-                            static_cast<unsigned>(speed / 1024));
+-        onLog(msg);
+-          });
+-
+-    if (!upgrade_success) {
+-        mclog::tagError(_tag, "firmware upgrade failed: version={}, url={}", firmware_version, firmware_url);
+-        onLog("Firmware upgrade failed, rebooting...");
+-        vTaskDelay(pdMS_TO_TICKS(5000));
+-        reboot();
+-        return false;
+-    }
+-
+-    mclog::tagInfo(_tag, "firmware upgrade successful, rebooting");
+-    onLog("Upgrade successful, rebooting...");
+-    vTaskDelay(pdMS_TO_TICKS(1000));
+-    reboot();
+-    return true;
+-}
+diff --git a/firmware/main/hal/hal_servo.cpp b/firmware/main/hal/hal_servo.cpp
+index a2429e2..b9f7592 100644
+--- a/firmware/main/hal/hal_servo.cpp
++++ b/firmware/main/hal/hal_servo.cpp
+@@ -350,12 +350,18 @@ void Hal::servo_init()
+     pitch_servo_config.rawPosLimit            = Vector2i(0, 1000);
+     pitch_servo_config.settingNs              = "servo";
+     pitch_servo_config.settingZeroPositionKey = "zero_pos_2";
+-    pitch_servo_config.enableStallProtection  = true;
++    // This K151 servo bus does not return valid position/current feedback.
++    // Feedback polling blocks time-critical camera and audio processing.
++    pitch_servo_config.enableStallProtection  = false;
+ 
+     auto yaw_servo   = std::make_unique<ScsServo>(yaw_servo_config);
+     auto pitch_servo = std::make_unique<ScsServo>(pitch_servo_config);
+     auto motion      = std::make_unique<Motion>(std::move(yaw_servo), std::move(pitch_servo));
+     motion->init();
+ 
++    // Home is the calibrated logical origin, not the 45-degree example pose
++    // shown in the servo documentation. Always restore it after a reboot.
++    motion->goHome(120);
++
+     GetStackChan().attachMotion(std::move(motion));
+ }
+diff --git a/firmware/main/hal/utils/ota/ota.c b/firmware/main/hal/utils/ota/ota.c
+deleted file mode 100644
+index e8cc31b..0000000
+--- a/firmware/main/hal/utils/ota/ota.c
++++ /dev/null
+@@ -1,189 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-// https://github.com/espressif/esp-idf/blob/v5.5.2/examples/system/ota/simple_ota_example/main/simple_ota_example.c
+-
+-// #define CONFIG_EXAMPLE_USE_CERT_BUNDLE 1
+-
+-#include "ota.h"
+-#include "freertos/FreeRTOS.h"
+-#include "freertos/task.h"
+-#include "esp_system.h"
+-#include "esp_event.h"
+-#include "esp_log.h"
+-#include "esp_ota_ops.h"
+-#include "esp_http_client.h"
+-#include "esp_https_ota.h"
+-#include "string.h"
+-#ifdef CONFIG_EXAMPLE_USE_CERT_BUNDLE
+-#include "esp_crt_bundle.h"
+-#endif
+-
+-static const char *TAG = "ota";
+-
+-#define OTA_URL_SIZE 256
+-
+-const char *server_cert_pem_start =
+-    "-----BEGIN CERTIFICATE-----\n"
+-    "MIIC+jCCAeKgAwIBAgIUBhxIdyxfbSgLqwvNPcelYLE88Y0wDQYJKoZIhvcNAQEL\n"
+-    "BQAwJDEiMCAGA1UEAwwZU3RhY2tjaGFuIE9UQSBUZXN0IFNlcnZlcjAeFw0yNjAx\n"
+-    "MjAwMjE4NTRaFw0yNzAxMjAwMjE4NTRaMCQxIjAgBgNVBAMMGVN0YWNrY2hhbiBP\n"
+-    "VEEgVGVzdCBTZXJ2ZXIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCg\n"
+-    "xRAxiju6admmBoCeC9wPYLLE9tUHccYM69O637Qapw3n8zH9LURBTJ7ivCeVQC8T\n"
+-    "+pZGLkS4NsExS+oHnyyr+OTB3ykKxOoOb7Sk0izxy0+gDEEojhNUPYc/mNgAq4yw\n"
+-    "ELmq5ymFMe1nFbm++menfdsYcyFNw05J/8c0gaOM2mj+GbGrzLUXVyAZg3JNKFEQ\n"
+-    "SfIgI41XNAWWNozRSrtbPUSBbmuCaOoQeNrU1jt5mBsVuHk5p7wIt2jJUe13a6UE\n"
+-    "0N179S+1Cn0fMEceJWYBS5FBSU83L2DMJi+FXI/877NKq/gifzYccG8tg1mYabba\n"
+-    "lKGNdhtxx6UJv0DtobUlAgMBAAGjJDAiMCAGA1UdEQQZMBeCCWxvY2FsaG9zdIcE\n"
+-    "fwAAAYcEwKgUFzANBgkqhkiG9w0BAQsFAAOCAQEAoHi9RYFuB6EKVU21rWSDPf/O\n"
+-    "9PhDcp8+hrE5OdgowhTeZDLwy6b/uAF7Vgo/Ojk/oqrHvFJlHEH3wQFTbWjUIJ3P\n"
+-    "aAzHrZEYMOGRTPdELiilke6+HbMMbOGfhFqt7es8eXPwFdzraPGaodwf0W8/AYSk\n"
+-    "QQoW+5zbkOS5p1teQUTsnrccjfe1xDx/mz1bW1cHK69pQNGbVtWpGs5IDMesDcqL\n"
+-    "nFnhrKtz3LFETQH5ItSueFUEurnyqxY+4rV2kx8emGtzPSokwbGmIpVe+Bei7sSo\n"
+-    "fQAFvk9rhUf1vvphC+Hci1uR60yDMq1P7S9JT+rRPTqdi+RoMK3LpVx67Ie0Hg==\n"
+-    "-----END CERTIFICATE-----\n"
+-    "";
+-
+-static esp_err_t _http_event_handler(esp_http_client_event_t *evt)
+-{
+-    switch (evt->event_id) {
+-        case HTTP_EVENT_ERROR:
+-            ESP_LOGD(TAG, "HTTP_EVENT_ERROR");
+-            break;
+-        case HTTP_EVENT_ON_CONNECTED:
+-            ESP_LOGD(TAG, "HTTP_EVENT_ON_CONNECTED");
+-            break;
+-        case HTTP_EVENT_HEADER_SENT:
+-            ESP_LOGD(TAG, "HTTP_EVENT_HEADER_SENT");
+-            break;
+-        case HTTP_EVENT_ON_HEADER:
+-            ESP_LOGD(TAG, "HTTP_EVENT_ON_HEADER, key=%s, value=%s", evt->header_key, evt->header_value);
+-            break;
+-        case HTTP_EVENT_ON_DATA:
+-            ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
+-            break;
+-        case HTTP_EVENT_ON_FINISH:
+-            ESP_LOGD(TAG, "HTTP_EVENT_ON_FINISH");
+-            break;
+-        case HTTP_EVENT_DISCONNECTED:
+-            ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
+-            break;
+-        case HTTP_EVENT_REDIRECT:
+-            ESP_LOGD(TAG, "HTTP_EVENT_REDIRECT");
+-            break;
+-    }
+-    return ESP_OK;
+-}
+-
+-esp_err_t my_esp_https_ota(const esp_https_ota_config_t *ota_config, void (*on_progress)(int progress))
+-{
+-    if (ota_config == NULL || ota_config->http_config == NULL) {
+-        return ESP_ERR_INVALID_ARG;
+-    }
+-
+-    esp_https_ota_handle_t https_ota_handle = NULL;
+-    esp_err_t err                           = esp_https_ota_begin(ota_config, &https_ota_handle);
+-    if (err != ESP_OK) {
+-        return err;
+-    }
+-
+-    int last_progress = -1;
+-    while (1) {
+-        err = esp_https_ota_perform(https_ota_handle);
+-        if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
+-            break;
+-        }
+-
+-        // --- 进度计算逻辑 ---
+-        int total_size = esp_https_ota_get_image_size(https_ota_handle);
+-        int read_size  = esp_https_ota_get_image_len_read(https_ota_handle);
+-
+-        if (total_size > 0) {
+-            int progress = (read_size * 100) / total_size;
+-
+-            if (progress != last_progress) {
+-                last_progress = progress;
+-                if (on_progress) {
+-                    on_progress(progress);
+-                }
+-            }
+-        }
+-    }
+-
+-    if (err != ESP_OK) {
+-        esp_https_ota_abort(https_ota_handle);
+-        return err;
+-    }
+-
+-    esp_err_t ota_finish_err = esp_https_ota_finish(https_ota_handle);
+-    if (ota_finish_err != ESP_OK) {
+-        return ota_finish_err;
+-    }
+-    return ESP_OK;
+-}
+-
+-void start_ota_update(const char *url, void (*on_progress)(int progress))
+-{
+-    ESP_LOGI(TAG, "Starting OTA example task");
+-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_BIND_IF
+-    esp_netif_t *netif = get_example_netif_from_desc(bind_interface_name);
+-    if (netif == NULL) {
+-        ESP_LOGE(TAG, "Can't find netif from interface description");
+-        abort();
+-    }
+-    struct ifreq ifr;
+-    esp_netif_get_netif_impl_name(netif, ifr.ifr_name);
+-    ESP_LOGI(TAG, "Bind interface name is %s", ifr.ifr_name);
+-#endif
+-    esp_http_client_config_t config = {
+-        .url = url,
+-#ifdef CONFIG_EXAMPLE_USE_CERT_BUNDLE
+-        .crt_bundle_attach = esp_crt_bundle_attach,
+-#else
+-        .cert_pem = (char *)server_cert_pem_start,
+-#endif /* CONFIG_EXAMPLE_USE_CERT_BUNDLE */
+-        .event_handler     = _http_event_handler,
+-        .keep_alive_enable = true,
+-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_BIND_IF
+-        .if_name = &ifr,
+-#endif
+-#if CONFIG_EXAMPLE_TLS_DYN_BUF_RX_STATIC
+-        /* This part applies static buffer strategy for rx dynamic buffer.
+-         * This is to avoid frequent allocation and deallocation of dynamic buffer.
+-         */
+-        .tls_dyn_buf_strategy = HTTP_TLS_DYN_BUF_RX_STATIC,
+-#endif /* CONFIG_EXAMPLE_TLS_DYN_BUF_RX_STATIC */
+-    };
+-
+-#ifdef CONFIG_EXAMPLE_FIRMWARE_UPGRADE_URL_FROM_STDIN
+-    char url_buf[OTA_URL_SIZE];
+-    if (strcmp(config.url, "FROM_STDIN") == 0) {
+-        example_configure_stdin_stdout();
+-        fgets(url_buf, OTA_URL_SIZE, stdin);
+-        int len          = strlen(url_buf);
+-        url_buf[len - 1] = '\0';
+-        config.url       = url_buf;
+-    } else {
+-        ESP_LOGE(TAG, "Configuration mismatch: wrong firmware upgrade image url");
+-        abort();
+-    }
+-#endif
+-
+-#ifdef CONFIG_EXAMPLE_SKIP_COMMON_NAME_CHECK
+-    config.skip_cert_common_name_check = true;
+-#endif
+-
+-    esp_https_ota_config_t ota_config = {
+-        .http_config = &config,
+-    };
+-    ESP_LOGI(TAG, "Attempting to download update from %s", config.url);
+-    esp_err_t ret = my_esp_https_ota(&ota_config, on_progress);
+-    if (ret == ESP_OK) {
+-        ESP_LOGI(TAG, "OTA Succeed, Rebooting...");
+-        esp_restart();
+-    } else {
+-        ESP_LOGE(TAG, "Firmware upgrade failed");
+-    }
+-}
+diff --git a/firmware/main/hal/utils/ota/ota.h b/firmware/main/hal/utils/ota/ota.h
+deleted file mode 100644
+index 8cd44a3..0000000
+--- a/firmware/main/hal/utils/ota/ota.h
++++ /dev/null
+@@ -1,16 +0,0 @@
+-/*
+- * SPDX-FileCopyrightText: 2026 M5Stack Technology CO LTD
+- *
+- * SPDX-License-Identifier: MIT
+- */
+-#pragma once
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-void start_ota_update(const char* url, void (*on_progress)(int progress));
+-
+-#ifdef __cplusplus
+-}
+-#endif
+diff --git a/firmware/main/idf_component.yml b/firmware/main/idf_component.yml
+index f124751..d967ab0 100644
+--- a/firmware/main/idf_component.yml
++++ b/firmware/main/idf_component.yml
+@@ -42,7 +42,7 @@ dependencies:
+     version: ==1.3.1   # for compatibility. update version may need to modify this project code.
+     rules:
+     - if: target in [esp32p4, esp32s3]
+-  
++
+   espressif/esp_image_effects:
+     version: ^1.0.1
+     rules:
+@@ -117,7 +117,7 @@ dependencies:
+     - if: target in [esp32s3, esp32c5]
+ 
+   espressif/esp_lcd_touch_st7123: ^1.0.0
+-  espressif/iot_usbh_rndis: 
++  espressif/iot_usbh_rndis:
+     version: ^0.3.1
+     rules:
+     - if: target in [esp32s3, esp32p4]
+@@ -125,3 +125,4 @@ dependencies:
+   ## Required IDF version
+   idf:
+     version: '>=5.5.2'
++  espressif/human_face_detect: ~0.5.0
+diff --git a/firmware/main/main.cpp b/firmware/main/main.cpp
+index 3f11ed6..cd0d53d 100644
+--- a/firmware/main/main.cpp
++++ b/firmware/main/main.cpp
+@@ -26,8 +26,8 @@ extern "C" void app_main(void)
+     ui_hal::on_delay([](uint32_t ms) { GetHAL().delay(ms); });
+     ui_hal::on_get_tick([]() { return GetHAL().millis(); });
+ 
+-    const bool skip_mooncake =
+-        GetHAL().getXiaozhiConfig().startAiAgentOnBoot && GetHAL().getWarmRebootTarget() < 0;
++    // Yuki is an always-on companion, so boot directly into the agent experience.
++    const bool skip_mooncake = GetHAL().getWarmRebootTarget() < 0;
+ 
+     if (!skip_mooncake) {
+         // Install apps
+@@ -35,7 +35,6 @@ extern "C" void app_main(void)
+         GetMooncake().installApp(std::make_unique<AppAiAgent>());
+         GetMooncake().installApp(std::make_unique<AppAvatar>());
+         GetMooncake().installApp(std::make_unique<AppEspnowControl>());
+-        GetMooncake().installApp(std::make_unique<AppAppCenter>());
+         GetMooncake().installApp(std::make_unique<AppEzdata>());
+         GetMooncake().installApp(std::make_unique<AppDance>());
+         GetMooncake().installApp(std::make_unique<AppSetup>());
+diff --git a/firmware/main/stackchan/avatar/avatar.h b/firmware/main/stackchan/avatar/avatar.h
+index fa1d7fe..97140ca 100644
+--- a/firmware/main/stackchan/avatar/avatar.h
++++ b/firmware/main/stackchan/avatar/avatar.h
+@@ -5,4 +5,5 @@
+  */
+ #pragma once
+ #include "skins/default/default.h"
++#include "skins/yuki/yuki.h"
+ #include "decorators/decorators.h"
+diff --git a/firmware/main/stackchan/modifiers/blink.h b/firmware/main/stackchan/modifiers/blink.h
+index 5c991ca..aaed5ac 100644
+--- a/firmware/main/stackchan/modifiers/blink.h
++++ b/firmware/main/stackchan/modifiers/blink.h
+@@ -22,7 +22,7 @@ public:
+      * @param openIntervalMs 睁眼持续时间
+      * @param closeIntervalMs 闭眼持续时间（瞬间）
+      */
+-    BlinkModifier(uint32_t destroyAfterMs = 0, uint32_t openIntervalMs = 5200, uint32_t closeIntervalMs = 200)
++    BlinkModifier(uint32_t destroyAfterMs = 0, uint32_t openIntervalMs = 5200, uint32_t closeIntervalMs = 100)
+         : _open_interval_ms(openIntervalMs), _close_interval_ms(closeIntervalMs)
+     {
+         uint32_t now = GetHAL().millis();
+@@ -34,8 +34,8 @@ public:
+         }
+ 
+         // 初始化：从睁眼状态开始，立即准备闭眼
+-        _state           = State::OPEN;
+-        _next_state_tick = now + _open_interval_ms;
++        _state           = State::Open;
++        _next_state_tick = now + next_open_hold();
+     }
+ 
+     void resyncEyeWeights()
+@@ -54,7 +54,7 @@ public:
+         // 1. 处理销毁逻辑
+         if (_has_lifetime && now >= _destroy_at) {
+             // 销毁前确保眼睛是睁开的
+-            if (_state == State::CLOSED) {
++            if (_state != State::Open) {
+                 apply_eye_weights(stackchan, _left_eye_weight, _right_eye_weight);
+             }
+             requestDestroy();
+@@ -71,30 +71,45 @@ public:
+ 
+         // 3. 状态机切换逻辑
+         if (now >= _next_state_tick) {
+-            if (_state == State::OPEN) {
+-                // 睁眼 -> 闭眼
+-                _state           = State::CLOSED;
+-                _next_state_tick = now + _close_interval_ms;
+-
+-                // 闭眼瞬间，先备份当前权重（以防外部中途修改了权重）
++            if (_state == State::Open) {
+                 _left_eye_weight  = stackchan.avatar().leftEye().getWeight();
+                 _right_eye_weight = stackchan.avatar().rightEye().getWeight();
+-
+-                apply_eye_weights(stackchan, 25, 25);
++                _state           = State::Closing;
++                _next_state_tick = now + 50;
++                apply_eye_weights(stackchan, 55, 55);
++            } else if (_state == State::Closing) {
++                _state           = State::Closed;
++                _next_state_tick = now + _close_interval_ms;
++                apply_eye_weights(stackchan, 0, 0);
++            } else if (_state == State::Closed) {
++                _state           = State::Opening;
++                _next_state_tick = now + 50;
++                apply_eye_weights(stackchan, 55, 55);
++            } else if (_double_blink_pending) {
++                _double_blink_pending = false;
++                _state                = State::OpenPause;
++                _next_state_tick      = now + 100;
++                apply_eye_weights(stackchan, _left_eye_weight, _right_eye_weight);
++            } else if (_state == State::OpenPause) {
++                _state           = State::Closing;
++                _next_state_tick = now + 50;
++                apply_eye_weights(stackchan, 55, 55);
+             } else {
+-                // 闭眼 -> 睁眼
+-                _state = State::OPEN;
+-                // 睁眼时间可以加一点随机抖动，看起来更自然
+-                uint32_t jitter  = Random::getInstance().getInt(0, 500);
+-                _next_state_tick = now + _open_interval_ms + jitter;
+-
++                _state                = State::Open;
++                _double_blink_pending = Random::getInstance().getInt(0, 8) == 0;
++                _next_state_tick      = now + next_open_hold();
+                 apply_eye_weights(stackchan, _left_eye_weight, _right_eye_weight);
+             }
+         }
+     }
+ 
+ private:
+-    enum class State { OPEN, CLOSED };
++    enum class State { Open, Closing, Closed, Opening, OpenPause };
++
++    uint32_t next_open_hold()
++    {
++        return Random::getInstance().getInt(_open_interval_ms / 2, _open_interval_ms + 1000);
++    }
+ 
+     void apply_eye_weights(Modifiable& stackchan, int left, int right)
+     {
+@@ -110,6 +125,7 @@ private:
+     uint32_t _destroy_at  = 0;
+     bool _has_lifetime    = false;
+     bool _needs_resync    = false;
++    bool _double_blink_pending = false;
+     int _left_eye_weight  = 100;
+     int _right_eye_weight = 100;
+ };
+diff --git a/firmware/main/stackchan/modifiers/head_pet.h b/firmware/main/stackchan/modifiers/head_pet.h
+index 7548767..f8c3b08 100644
+--- a/firmware/main/stackchan/modifiers/head_pet.h
++++ b/firmware/main/stackchan/modifiers/head_pet.h
+@@ -8,6 +8,7 @@
+ #include "../avatar/decorators/decorators.h"
+ #include "../utils/random.h"
+ #include <smooth_ui_toolkit.hpp>
++#include <hal/board/hal_bridge.h>
+ #include <hal/hal.h>
+ #include <cstdint>
+ #include <memory>
+@@ -24,8 +25,9 @@ public:
+     {
+         // 绑定信号
+         _signal_connection = GetHAL().onHeadPetGesture.connect([this](HeadPetGesture gesture) {
+-            if (gesture == HeadPetGesture::SwipeForward || gesture == HeadPetGesture::SwipeBackward) {
+-                _event_swipe = true;
++            if (gesture == HeadPetGesture::Press || gesture == HeadPetGesture::SwipeForward ||
++                gesture == HeadPetGesture::SwipeBackward) {
++                _event_pet = true;
+             } else if (gesture == HeadPetGesture::Release) {
+                 _event_release = true;
+             }
+@@ -42,9 +44,9 @@ public:
+         uint32_t now = GetHAL().millis();
+ 
+         // 处理“被抚摸中”事件
+-        if (_event_swipe) {
+-            _event_swipe = false;
+-            handle_swipe(stackchan);
++        if (_event_pet) {
++            _event_pet = false;
++            handle_pet(stackchan);
+             // 只要在摸，就推迟恢复时间
+             _is_waiting_restore = false;
+         }
+@@ -52,6 +54,9 @@ public:
+         // 处理“手松开”事件
+         if (_event_release) {
+             _event_release = false;
++            if (hal_bridge::is_xiaozhi_ready() && hal_bridge::is_xiaozhi_idle()) {
++                hal_bridge::toggle_xiaozhi_chat_state();
++            }
+             if (_in_happy_state) {
+                 _is_waiting_restore = true;
+                 _restore_tick       = now + _restore_delay_ms;
+@@ -66,7 +71,7 @@ public:
+     }
+ 
+ private:
+-    void handle_swipe(Modifiable& stackchan)
++    void handle_pet(Modifiable& stackchan)
+     {
+         auto& avatar = stackchan.avatar();
+ 
+@@ -142,7 +147,7 @@ private:
+ 
+     // 信号相关
+     int _signal_connection;
+-    volatile bool _event_swipe   = false;
++    volatile bool _event_pet     = false;
+     volatile bool _event_release = false;
+ 
+     // 状态机相关
+diff --git a/firmware/main/stackchan/modifiers/speaking.h b/firmware/main/stackchan/modifiers/speaking.h
+index 08c4545..c024501 100644
+--- a/firmware/main/stackchan/modifiers/speaking.h
++++ b/firmware/main/stackchan/modifiers/speaking.h
+@@ -8,6 +8,7 @@
+ #include "../utils/random.h"
+ #include <smooth_ui_toolkit.hpp>
+ #include <hal/hal.h>
++#include <array>
+ #include <cstdint>
+ 
+ namespace stackchan {
+@@ -59,7 +60,7 @@ public:
+         // 嘴巴开合动画
+         if (now >= _next_mouth_tick) {
+             _next_mouth_tick = now + _mouth_interval_ms;
+-            animate_mouth(stackchan.avatar());
++            animate_mouth(stackchan);
+         }
+ 
+         // 身体微动动作
+@@ -71,21 +72,45 @@ public:
+     }
+ 
+ private:
+-    void animate_mouth(avatar::Avatar& avatar)
++    void animate_mouth(Modifiable& stackchan)
+     {
+-        _is_mouth_open = !_is_mouth_open;
+-        auto& random   = Random::getInstance();
+-
+-        int weight = _is_mouth_open ? random.getInt(_open_min_weight, _open_max_weight)
+-                                    : random.getInt(_close_min_weight, _close_max_weight);
++        static constexpr std::array<int, 8> normal = {0, 55, 100, 0, 55, 0, 100, 55};
++        static constexpr std::array<int, 8> happy = {0, 55, 100, 100, 55, 0, 100, 55};
++        static constexpr std::array<int, 8> angry = {100, 100, 55, 100, 0, 100, 55, 100};
++        static constexpr std::array<int, 8> quiet = {0, 55, 0, 55, 0, 0, 55, 0};
++
++        const auto emotion = stackchan.avatar().getEmotion();
++        const auto* pattern = &normal;
++        if (emotion == avatar::Emotion::Happy) {
++            pattern = &happy;
++        } else if (emotion == avatar::Emotion::Angry) {
++            pattern = &angry;
++        } else if (emotion == avatar::Emotion::Sad || emotion == avatar::Emotion::Sleepy) {
++            pattern = &quiet;
++        }
+ 
+-        avatar.mouth().setWeight(weight);
++        const int weight = (*pattern)[_mouth_phase++ % pattern->size()];
++        stackchan.avatar().mouth().setWeight(weight);
++
++        // A soft two-color pulse makes speech visible without overpowering Yuki's face.
++        auto& left_light  = stackchan.leftNeonLight();
++        auto& right_light = stackchan.rightNeonLight();
++        left_light.setDuration(0.16f);
++        right_light.setDuration(0.16f);
++        if (weight >= 55) {
++            left_light.setColor(10, 38, 52);
++            right_light.setColor(42, 16, 30);
++        } else {
++            left_light.setColor(3, 8, 12);
++            right_light.setColor(10, 3, 6);
++        }
+     }
+ 
+     void perform_subtle_speaking_motion(Modifiable& stackchan)
+     {
+         auto& motion = stackchan.motion();
+-        if (motion.isMoving()) {
++        // Face tracking owns the head while a face is present.
++        if (motion.isModifyLocked() || motion.isMoving()) {
+             return;
+         }
+ 
+@@ -124,12 +149,6 @@ private:
+         motion.moveWithSpeed(target_yaw, target_pitch, speed);
+     }
+ 
+-    // 配置常量
+-    const int _open_min_weight  = 40;
+-    const int _open_max_weight  = 80;
+-    const int _close_min_weight = 0;
+-    const int _close_max_weight = 20;
+-
+     // 计时状态
+     uint32_t _destroy_at       = 0;
+     uint32_t _next_mouth_tick  = 0;
+@@ -138,7 +157,7 @@ private:
+ 
+     bool _has_lifetime         = false;
+     bool _enable_motion        = false;
+-    bool _is_mouth_open        = false;
++    size_t _mouth_phase        = 0;
+     bool _need_get_prev_angles = true;
+ 
+     uitk::Vector2i _prev_angles;
+diff --git a/firmware/main/stackchan/motion/servo.cpp b/firmware/main/stackchan/motion/servo.cpp
+index cfbefe0..268f4d8 100644
+--- a/firmware/main/stackchan/motion/servo.cpp
++++ b/firmware/main/stackchan/motion/servo.cpp
+@@ -108,6 +108,7 @@ void Servo::apply_default_spring_options()
+ void Servo::update_angle_anim_target(int angle)
+ {
+     angle = uitk::clamp(angle, _angle_limit.x, _angle_limit.y);
++    setTorqueEnabled(true);
+ 
+     if (_auto_angle_sync_enabled) {
+         _angle_anim.teleport(getCurrentAngle());  // Use current angle as start
+diff --git a/firmware/partitions.csv b/firmware/partitions.csv
+index 0656b16..36f4d1a 100644
+--- a/firmware/partitions.csv
++++ b/firmware/partitions.csv
+@@ -3,7 +3,7 @@
+ nvs,      data, nvs,     0x9000,    0x4000,
+ otadata,  data, ota,     0xd000,    0x2000,
+ phy_init, data, phy,     0xf000,    0x1000,
+-ota_0,    app,  ota_0,   0x20000,   0x4f0000,
+-ota_1,    app,  ota_1,   ,          0x4f0000,
+-assets,   data, spiffs,  0xA00000,  4M,
++ota_0,    app,  ota_0,   0x20000,   0x640000,
++human_face_det, data, 0x40, 0x660000, 0x30000,
++assets,   data, spiffs,  0x690000,  0x770000,
+ coredump, data, coredump,,          0x10000,
+diff --git a/firmware/sdkconfig.defaults b/firmware/sdkconfig.defaults
+index 4db623a..430c869 100644
+--- a/firmware/sdkconfig.defaults
++++ b/firmware/sdkconfig.defaults
+@@ -10,7 +10,11 @@ CONFIG_PARTITION_TABLE_CUSTOM=y
+ CONFIG_LANGUAGE_EN_US=y
+ CONFIG_BOARD_TYPE_M5STACK_STACK_CHAN=y
+ CONFIG_SEND_WAKE_WORD_DATA=n
+-CONFIG_SR_WN_WN9_HISTACKCHAN_TTS3=y
++CONFIG_USE_CUSTOM_WAKE_WORD=y
++CONFIG_CUSTOM_WAKE_WORD="hi yuki"
++CONFIG_CUSTOM_WAKE_WORD_DISPLAY="Hi Yuki"
++CONFIG_CUSTOM_WAKE_WORD_THRESHOLD=35
++CONFIG_SR_MN_EN_MULTINET7_QUANT=y
+ CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+ CONFIG_COMPILER_CXX_EXCEPTIONS=y
+ CONFIG_COMPILER_CXX_EXCEPTIONS_EMG_POOL_SIZE=1024
+@@ -52,6 +56,7 @@ CONFIG_MBEDTLS_SSL_RENEGOTIATION=n
+ CONFIG_LIBC_NEWLIB_NANO_FORMAT=y
+ CONFIG_CAMERA_GC0308=y
+ CONFIG_CAMERA_GC0308_DVP_YUV422_320X240_20FPS=y
++CONFIG_HUMAN_FACE_DETECT_MODEL_IN_FLASH_PARTITION=y
+ CONFIG_LV_USE_CLIB_MALLOC=y
+ CONFIG_LV_USE_CLIB_STRING=y
+ CONFIG_LV_USE_CLIB_SPRINTF=y
