@@ -1,5 +1,5 @@
 diff --git a/main/application.cc b/main/application.cc
-index d69d43d..3b6f07e 100644
+index d69d43d..94de890 100644
 --- a/main/application.cc
 +++ b/main/application.cc
 @@ -610,33 +610,36 @@ void Application::InitializeProtocol() {
@@ -39,7 +39,7 @@ index d69d43d..3b6f07e 100644
 +    // };
 +    // static const std::array<digit_sound, 10> digit_sounds{{
 +    //     digit_sound{'0', Lang::Sounds::OGG_0},
-+    //     digit_sound{'1', Lang::Sounds::OGG_1}, 
++    //     digit_sound{'1', Lang::Sounds::OGG_1},
 +    //     digit_sound{'2', Lang::Sounds::OGG_2},
 +    //     digit_sound{'3', Lang::Sounds::OGG_3},
 +    //     digit_sound{'4', Lang::Sounds::OGG_4},
@@ -66,6 +66,66 @@ index d69d43d..3b6f07e 100644
  }
  
  void Application::Alert(const char* status, const char* message, const char* emotion, const std::string_view& sound) {
+@@ -1049,6 +1052,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
+     }
+ }
+ 
++void Application::StartProactiveConversation(const std::string& prompt) {
++    Schedule([this, prompt]() {
++        if (!protocol_ || GetDeviceState() != kDeviceStateIdle) {
++            ESP_LOGW(TAG, "Ignoring proactive conversation while unavailable");
++            return;
++        }
++
++        SetDeviceState(kDeviceStateConnecting);
++        Schedule([this, prompt]() {
++            ContinueProactiveConversation(prompt);
++        });
++    });
++}
++
++void Application::ContinueProactiveConversation(const std::string& prompt) {
++    if (!protocol_ || GetDeviceState() != kDeviceStateConnecting) {
++        return;
++    }
++    if (!protocol_->IsAudioChannelOpened() && !protocol_->OpenAudioChannel()) {
++        SetDeviceState(kDeviceStateIdle);
++        return;
++    }
++
++    ESP_LOGI(TAG, "Starting proactive conversation");
++    protocol_->SendWakeWordDetected(prompt);
++    SetListeningMode(GetDefaultListeningMode());
++}
++
+ bool Application::CanEnterSleepMode() {
+     if (GetDeviceState() != kDeviceStateIdle) {
+         return false;
+@@ -1116,4 +1147,3 @@ void Application::ResetProtocol() {
+         protocol_.reset();
+     });
+ }
+-
+diff --git a/main/application.h b/main/application.h
+index 7ca7af4..9d0b215 100644
+--- a/main/application.h
++++ b/main/application.h
+@@ -105,6 +105,7 @@ public:
+ 
+     void Reboot();
+     void WakeWordInvoke(const std::string& wake_word);
++    void StartProactiveConversation(const std::string& prompt);
+     bool UpgradeFirmware(const std::string& url, const std::string& version = "");
+     bool CanEnterSleepMode();
+     void SendMcpMessage(const std::string& payload);
+@@ -155,6 +156,7 @@ private:
+     void HandleWakeWordDetectedEvent();
+     void ContinueOpenAudioChannel(ListeningMode mode);
+     void ContinueWakeWordInvoke(const std::string& wake_word);
++    void ContinueProactiveConversation(const std::string& prompt);
+ 
+     // Activation task (runs in background)
+     void ActivationTask();
 diff --git a/main/assets.cc b/main/assets.cc
 index ad61944..6b84daf 100644
 --- a/main/assets.cc

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <lvgl.h>
 #include <driver/i2c_master.h>
+#include <string>
 #include <string_view>
 
 namespace hal_bridge {
@@ -41,6 +42,7 @@ TouchPoint_t get_touch_point();
 bool is_xiaozhi_mode();
 void set_xiaozhi_mode(bool mode);
 void toggle_xiaozhi_chat_state();
+void start_proactive_conversation(const std::string& prompt);
 
 void disply_lvgl_lock();
 void disply_lvgl_unlock();

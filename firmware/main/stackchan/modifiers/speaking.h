@@ -8,6 +8,7 @@
 #include "../utils/random.h"
 #include <smooth_ui_toolkit.hpp>
 #include <hal/hal.h>
+#include <array>
 #include <cstdint>
 
 namespace stackchan {
@@ -73,12 +74,22 @@ public:
 private:
     void animate_mouth(Modifiable& stackchan)
     {
-        _is_mouth_open = !_is_mouth_open;
-        auto& random   = Random::getInstance();
+        static constexpr std::array<int, 8> normal = {0, 55, 100, 0, 55, 0, 100, 55};
+        static constexpr std::array<int, 8> happy = {0, 55, 100, 100, 55, 0, 100, 55};
+        static constexpr std::array<int, 8> angry = {100, 100, 55, 100, 0, 100, 55, 100};
+        static constexpr std::array<int, 8> quiet = {0, 55, 0, 55, 0, 0, 55, 0};
 
-        int weight = _is_mouth_open ? random.getInt(_open_min_weight, _open_max_weight)
-                                    : random.getInt(_close_min_weight, _close_max_weight);
+        const auto emotion = stackchan.avatar().getEmotion();
+        const auto* pattern = &normal;
+        if (emotion == avatar::Emotion::Happy) {
+            pattern = &happy;
+        } else if (emotion == avatar::Emotion::Angry) {
+            pattern = &angry;
+        } else if (emotion == avatar::Emotion::Sad || emotion == avatar::Emotion::Sleepy) {
+            pattern = &quiet;
+        }
 
+        const int weight = (*pattern)[_mouth_phase++ % pattern->size()];
         stackchan.avatar().mouth().setWeight(weight);
 
         // A soft two-color pulse makes speech visible without overpowering Yuki's face.
@@ -86,7 +97,7 @@ private:
         auto& right_light = stackchan.rightNeonLight();
         left_light.setDuration(0.16f);
         right_light.setDuration(0.16f);
-        if (_is_mouth_open) {
+        if (weight >= 55) {
             left_light.setColor(10, 38, 52);
             right_light.setColor(42, 16, 30);
         } else {
@@ -138,12 +149,6 @@ private:
         motion.moveWithSpeed(target_yaw, target_pitch, speed);
     }
 
-    // 配置常量
-    const int _open_min_weight  = 40;
-    const int _open_max_weight  = 80;
-    const int _close_min_weight = 0;
-    const int _close_max_weight = 20;
-
     // 计时状态
     uint32_t _destroy_at       = 0;
     uint32_t _next_mouth_tick  = 0;
@@ -152,7 +157,7 @@ private:
 
     bool _has_lifetime         = false;
     bool _enable_motion        = false;
-    bool _is_mouth_open        = false;
+    size_t _mouth_phase        = 0;
     bool _need_get_prev_angles = true;
 
     uitk::Vector2i _prev_angles;

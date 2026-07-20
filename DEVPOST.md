@@ -16,7 +16,7 @@ Yuki uses her camera to find and follow a face. Instead of requiring a spoken wa
 
 Her screen is not a collection of static reaction images. Yuki has an original, fully animated character face with continuous blinking, gaze, mouth movement, emotional transitions, and idle behavior. Her expressions work together with her physical body: speech can be accompanied by head movement, LED patterns, voice, and reactions to touch or motion.
 
-When Yuki is idle, she can explore articles based on her owner's interests. Rather than reading a feed aloud, she evaluates what she finds and saves topics that may lead to an interesting conversation. When the moment is appropriate, she can turn toward the user and start the conversation herself. If the user is busy, she returns to a quiet state.
+When Yuki is idle, a configurable curiosity scheduler can ask the active AI backend to explore the web around her owner's interests and choose one fresh item worth sharing. She starts only after recently seeing the user and while the conversation is in standby, so she does not talk to an empty room or interrupt an active exchange. The request travels through the existing Xiaozhi-compatible protocol, keeping the runtime model and search provider replaceable.
 
 The goal is not to make another command-driven assistant. It is to make an AI character feel present in the physical space it shares with a person.
 
@@ -82,4 +82,3 @@ Most importantly, autonomy is not simply doing more without being asked. A good 
 - M5Stack StackChan
 - CMake
 - GitHub
-

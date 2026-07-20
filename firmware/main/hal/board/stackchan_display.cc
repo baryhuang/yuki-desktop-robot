@@ -16,6 +16,7 @@
 #include <lvgl_theme.h>
 #include <stackchan/stackchan.h>
 #include <stackchan/vision/yuki_vision.h>
+#include <stackchan/curiosity/yuki_curiosity.h>
 #include <assets/lang_config.h>
 #include <hal/hal.h>
 
@@ -274,6 +275,7 @@ void StackChanAvatarDisplay::SetupUI()
     stackchan.addModifier(std::make_unique<ImuEventModifier>());
     stackchan.addModifier(std::make_unique<YukiFaceTrackingModifier>());
     StartYukiVision();
+    StartYukiCuriosity();
 
     preview_image_ = lv_image_create(lv_screen_active());
     lv_obj_set_size(preview_image_, 320, 240);

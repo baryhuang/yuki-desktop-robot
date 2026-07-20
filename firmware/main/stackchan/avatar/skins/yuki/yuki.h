@@ -35,12 +35,9 @@ private:
     uitk::Vector2i current_position_;
 
     lv_obj_t* container_ = nullptr;
-    lv_obj_t* white_ = nullptr;
-    lv_obj_t* iris_ = nullptr;
-    lv_obj_t* pupil_ = nullptr;
-    lv_obj_t* highlight_large_ = nullptr;
-    lv_obj_t* highlight_small_ = nullptr;
-    lv_obj_t* brow_ = nullptr;
+    lv_obj_t* eyelid_ = nullptr;
+    lv_obj_t* closed_line_left_ = nullptr;
+    lv_obj_t* closed_line_right_ = nullptr;
 };
 
 class YukiMouth : public Feature {
@@ -64,6 +61,7 @@ private:
 
     lv_obj_t* mouth_ = nullptr;
     lv_obj_t* tongue_ = nullptr;
+    lv_obj_t* mouth_mask_ = nullptr;
     lv_obj_t* left_corner_ = nullptr;
     lv_obj_t* right_corner_ = nullptr;
 };
@@ -90,6 +88,8 @@ public:
 
 private:
     std::unique_ptr<uitk::lvgl_cpp::Container> panel_;
+    lv_image_dsc_t portrait_ = {};
+    lv_obj_t* portrait_object_ = nullptr;
     lv_obj_t* blush_left_ = nullptr;
     lv_obj_t* blush_right_ = nullptr;
 };

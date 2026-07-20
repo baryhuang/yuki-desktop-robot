@@ -7,6 +7,7 @@
 #include <mooncake_log.h>
 #include <mcp_server.h>
 #include <stackchan/stackchan.h>
+#include <stackchan/curiosity/yuki_curiosity.h>
 #include <apps/common/common.h>
 #include <atomic>
 #include <array>
@@ -294,6 +295,44 @@ void Hal::xiaozhi_mcp_init()
             }
             refreshRgb();
 
+            return true;
+        });
+
+    mclog::tagInfo(_tag, "add robot.configure_curiosity tool");
+    mcp_server.AddTool(
+        "self.robot.configure_curiosity",
+        "Configure Yuki's autonomous interest-guided web exploration. Interests are a short comma-separated or "
+        "natural-language description. The interval is 2-180 minutes. Yuki only starts a conversation while idle "
+        "and after recently seeing the user, so she does not talk to an empty room.",
+        PropertyList({Property("enabled", kPropertyTypeBoolean, true),
+                      Property("interval_minutes", kPropertyTypeInteger, 30, 2, 180),
+                      Property("interests", kPropertyTypeString,
+                               std::string("AI, robotics, science, and creative technology"))}),
+        [](const PropertyList& properties) -> ReturnValue {
+            YukiCuriosityConfig config;
+            config.enabled = properties["enabled"].value<bool>();
+            config.interval_minutes = properties["interval_minutes"].value<int>();
+            config.interests = properties["interests"].value<std::string>();
+            SetYukiCuriosityConfig(config);
+            return true;
+        });
+
+    mclog::tagInfo(_tag, "add robot.get_curiosity_config tool");
+    mcp_server.AddTool(
+        "self.robot.get_curiosity_config", "Get Yuki's current autonomous curiosity settings.",
+        std::vector<Property>{}, [](const PropertyList&) -> ReturnValue {
+            const auto config = GetYukiCuriosityConfig();
+            return fmt::format("enabled={}, interval_minutes={}, interests={}", config.enabled,
+                               config.interval_minutes, config.interests);
+        });
+
+    mclog::tagInfo(_tag, "add robot.share_something_now tool");
+    mcp_server.AddTool(
+        "self.robot.share_something_now",
+        "Ask Yuki to begin one interest-guided curiosity conversation as soon as she is idle and can see the user. "
+        "Use this for an explicit user request or a demo; normal autonomous exploration follows the configured interval.",
+        std::vector<Property>{}, [](const PropertyList&) -> ReturnValue {
+            RequestYukiCuriosityNow();
             return true;
         });
 }

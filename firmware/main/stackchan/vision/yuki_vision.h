@@ -19,5 +19,6 @@ private:
 };
 
 void StartYukiVision();
+bool YukiFaceSeenRecently(uint32_t within_ms);
 
 }  // namespace stackchan

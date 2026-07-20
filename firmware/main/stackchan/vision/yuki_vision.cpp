@@ -278,4 +278,10 @@ void StartYukiVision()
     }
 }
 
+bool YukiFaceSeenRecently(uint32_t within_ms)
+{
+    const uint32_t seen_at = face_seen_at.load();
+    return seen_at != 0 && GetHAL().millis() - seen_at <= within_ms;
+}
+
 }  // namespace stackchan

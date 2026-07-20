@@ -659,3 +659,8 @@ void hal_bridge::toggle_xiaozhi_chat_state()
     }
     app.ToggleChatState();
 }
+
+void hal_bridge::start_proactive_conversation(const std::string& prompt)
+{
+    Application::GetInstance().StartProactiveConversation(prompt);
+}

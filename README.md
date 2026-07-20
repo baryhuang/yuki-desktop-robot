@@ -1,5 +1,7 @@
 # Yuki: The Curious Desktop Robot
 
+![Yuki character reference](docs/assets/yuki-character-reference.jpg)
+
 > An expressive desktop robot that follows your face, wakes to gestures, explores the web around your interests, and starts conversations through animation, voice, movement, and light.
 
 Yuki is an embodied AI companion built for OpenAI Build Week 2026 on the M5Stack StackChan K151. The project extends the open-source factory firmware in native C and C++ instead of replacing it with a simplified demonstration.
@@ -15,12 +17,13 @@ Implemented during the hackathon:
 - Camera motion analysis that recognizes a deliberate left-right wave and wakes the conversation from standby
 - A mutex-protected camera path that allows continuous perception to coexist with photos and visual questions
 - Speech-state coordination that synchronizes Yuki's mouth, safety-aware head gestures, and two-color LED pulses while preserving face-tracking priority
+- Configurable interest-guided curiosity that autonomously asks the active backend to explore the web and start a short conversation, gated by idle state and recent face presence
+- MCP tools to configure curiosity, inspect its settings, and trigger an immediate demo without tying the firmware to one LLM provider
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 - A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
 In active development:
 
-- Interest-guided web exploration and proactive conversation while idle
 - Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
 
 The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
@@ -58,6 +61,8 @@ idf.py -p /dev/cu.usbmodem1101 flash
 ```
 
 > **Hardware warning:** Do not run `erase-flash` or `nvs_flash_erase()` on a configured StackChan. NVS contains device-specific servo calibration and identity values. The tilt servo must remain within its safe physical range.
+
+For a quick curiosity demo, open `AI.AGENT`, remain in view of the camera, and ask Yuki to set your interests or to share something now. The request is deferred until the current conversation returns to standby, then Yuki sends the exploration prompt through the configured Xiaozhi-compatible backend.
 
 ## How Codex contributed
 
