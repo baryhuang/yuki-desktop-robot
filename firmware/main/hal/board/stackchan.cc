@@ -234,7 +234,6 @@ private:
 
 class M5StackCoreS3Board : public WifiBoard {
 private:
-    static constexpr int kPowerSaveSleepDelaySeconds = 300;
     static constexpr int kPowerStatePollIntervalMs   = 1000;
 
     i2c_master_bus_handle_t i2c_bus_;
@@ -244,7 +243,7 @@ private:
     LvglDisplay* display_;
     StackChanCamera* camera_;
     esp_timer_handle_t touchpad_timer_;
-    PowerSaveTimer* power_save_timer_;
+    PowerSaveTimer* power_save_timer_ = nullptr;
     hal_bridge::XiaozhiConfig_t xiaozhi_config_;
     bool last_power_save_enabled_      = false;
     int64_t last_power_state_check_ms_ = 0;
@@ -256,6 +255,9 @@ private:
 
     void UpdatePowerSaveEnabled(bool has_external_power, bool is_discharging)
     {
+        if (power_save_timer_ == nullptr) {
+            return;
+        }
         const bool should_enable_power_save = ShouldEnablePowerSave(has_external_power, is_discharging);
         if (should_enable_power_save == last_power_save_enabled_) {
             return;
@@ -282,28 +284,7 @@ private:
     void InitializePowerSaveTimer()
     {
         xiaozhi_config_ = hal_bridge::get_xiaozhi_config();
-
-        const int seconds_to_shutdown = xiaozhi_config_.idleShutdownTimeSeconds > 0
-                                            ? static_cast<int>(xiaozhi_config_.idleShutdownTimeSeconds)
-                                            : -1;
-        const int seconds_to_sleep    = seconds_to_shutdown == -1
-                                            ? kPowerSaveSleepDelaySeconds
-                                            : std::min(kPowerSaveSleepDelaySeconds, seconds_to_shutdown);
-
-        ESP_LOGI(TAG, "Init power save timer: sleep=%d s, shutdown=%d s, allow_shutdown_when_charging=%d",
-                 seconds_to_sleep, seconds_to_shutdown, xiaozhi_config_.allowShutdownWhenCharging);
-
-        power_save_timer_ = new PowerSaveTimer(-1, seconds_to_sleep, seconds_to_shutdown);
-        power_save_timer_->OnEnterSleepMode([this]() {
-            GetDisplay()->SetPowerSaveMode(true);
-            // GetBacklight()->SetBrightness(10);
-        });
-        power_save_timer_->OnExitSleepMode([this]() {
-            GetDisplay()->SetPowerSaveMode(false);
-            GetBacklight()->RestoreBrightness();
-        });
-        power_save_timer_->OnShutdownRequest([this]() { pmic_->PowerOff(); });
-        UpdatePowerSaveEnabled(pmic_->IsExternalPowerConnected(), pmic_->IsDischarging());
+        ESP_LOGI(TAG, "Yuki always-on mode: idle sleep and automatic shutdown are disabled");
     }
 
     void InitializeI2c()
@@ -529,7 +510,7 @@ public:
         static bool last_discharging = false;
         charging                     = pmic_->IsCharging();
         discharging                  = pmic_->IsDischarging();
-        if (discharging != last_discharging) {
+        if (power_save_timer_ != nullptr && discharging != last_discharging) {
             power_save_timer_->SetEnabled(discharging);
             last_discharging = discharging;
         }
@@ -540,7 +521,7 @@ public:
 
     virtual void SetPowerSaveLevel(PowerSaveLevel level) override
     {
-        if (level != PowerSaveLevel::LOW_POWER) {
+        if (power_save_timer_ != nullptr && level != PowerSaveLevel::LOW_POWER) {
             power_save_timer_->WakeUp();
         }
         WifiBoard::SetPowerSaveLevel(level);
@@ -658,6 +639,11 @@ void hal_bridge::toggle_xiaozhi_chat_state()
         return;
     }
     app.ToggleChatState();
+}
+
+bool hal_bridge::is_xiaozhi_voice_detected()
+{
+    return Application::GetInstance().IsVoiceDetected();
 }
 
 void hal_bridge::start_proactive_conversation(const std::string& prompt)

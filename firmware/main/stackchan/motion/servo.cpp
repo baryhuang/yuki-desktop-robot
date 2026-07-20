@@ -108,6 +108,7 @@ void Servo::apply_default_spring_options()
 void Servo::update_angle_anim_target(int angle)
 {
     angle = uitk::clamp(angle, _angle_limit.x, _angle_limit.y);
+    setTorqueEnabled(true);
 
     if (_auto_angle_sync_enabled) {
         _angle_anim.teleport(getCurrentAngle());  // Use current angle as start

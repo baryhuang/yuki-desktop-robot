@@ -1,84 +1,107 @@
 # Yuki: The Curious Desktop Robot
 
-> An expressive desktop robot that follows your face, wakes to gestures, explores the web around your interests, and starts conversations through animation, voice, movement, and light.
+Yuki is an always-aware desktop robot built on an M5Stack StackChan K151. She continuously looks for a face, follows it with her animated gaze, wakes when you say **“Hi Yuki,”** wave, or touch her head, and responds through voice, an animated character face, commanded head movement, and 12 RGB LEDs. When idle, she can explore the web around her owner’s saved interests, select something worth sharing, and start a conversation on her own.
 
-## Inspiration
-
-Most AI assistants wait behind a wake word. Even when placed inside a robot, they often behave like a speaker with a screen: they answer questions, but they do not feel present.
-
-I wanted to explore a different idea. What if a desktop robot could notice when I was nearby, understand how I interacted with it, remain curious while idle, and return with something worth sharing?
-
-That idea became **Yuki**, an expressive desktop robot with a life between conversations.
+This is not a web interface attached to a robot and not a video playing on its screen. Yuki runs as native C and C++ firmware on an ESP32-S3 with 16 MB of flash and 8 MB of PSRAM. Camera perception, wake behavior, animation, touch and IMU sensing, servo control, LED control, audio state coordination, and the agent’s physical tools all run on the device.
 
 ## What it does
 
-Yuki uses her camera to find and follow a face. Instead of requiring a spoken wake word, she can recognize a deliberate gesture as an invitation to interact.
+- Keeps the camera active in standby, detects a face on-device, moves Yuki’s gaze toward it, and produces safety-limited targets for her pan-and-tilt head.
+- Wakes through three natural inputs: the local **“Hi Yuki”** wake phrase, a deliberate left-right hand gesture detected by the camera, or a head touch that also triggers a shy reaction.
+- Replaces StackChan’s original expression library with a layered Yuki character renderer built in C++ and LVGL. It uses anime limited-animation timing: held key poses, fast three-state blinks, emotion-specific three-state mouth shapes, gaze offsets, blush and symbolic effect layers, breathing, and timed transitions instead of continuously morphing every feature.
+- Coordinates speech with small mouth shapes, head gestures, and two-color LED pulses so the screen and physical body perform as one character.
+- Gives the agent hardware capabilities through MCP tools, including head control, camera use, recent touch and motion history, reminders, curiosity settings, and individual control of all 12 LEDs.
+- Stores the owner’s interests and runs an idle curiosity scheduler. It only proposes a story after recently seeing the user and while no conversation is active; the runtime model and web-search provider remain replaceable.
 
-Her screen is not a collection of static reaction images. Yuki has an original, fully animated character face with continuous blinking, gaze, mouth movement, emotional transitions, and idle behavior. Her expressions work together with her physical body: speech can be accompanied by head movement, LED patterns, voice, and reactions to touch or motion.
+## Inspiration
 
-When Yuki is idle, a configurable curiosity scheduler can ask the active AI backend to explore the web around her owner's interests and choose one fresh item worth sharing. She starts only after recently seeing the user and while the conversation is in standby, so she does not talk to an empty room or interrupt an active exchange. The request travels through the existing Xiaozhi-compatible protocol, keeping the runtime model and search provider replaceable.
+Most voice assistants disappear until a command is spoken. Putting the same interaction inside a robot still produces a smart speaker with a face. I wanted a desktop character that remains visibly attentive between requests: she notices that I am present, reacts when I touch or wave to her, and sometimes returns with something I would actually want to hear.
 
-The goal is not to make another command-driven assistant. It is to make an AI character feel present in the physical space it shares with a person.
+Japanese TV animation supplied the visual constraint. A small embedded display does not need 60 FPS character animation. A strong held drawing, one quick blink, a two-pixel breath, three well-timed mouth poses, and a delayed head movement can communicate more personality with less memory and computation. Yuki applies that limited-animation grammar to a physical AI companion.
 
 ## How I built it
 
-Yuki is built on an M5Stack StackChan K151, a desktop robot powered by an ESP32-S3. The embedded experience is implemented in native C and C++ using ESP-IDF, FreeRTOS, and LVGL.
+I extended M5Stack’s complete open-source factory firmware instead of replacing it with a minimal demo. That kept the production audio pipeline, networking, display, touch, IMU, camera, feedback servos, LEDs, settings, and application framework intact while changing the robot’s identity and behavior at the firmware level.
 
-I extended the open-source factory firmware rather than replacing the robot with a simplified demo. This preserves its existing audio, display, servo, touch, IMU, networking, and application capabilities while allowing Yuki's new behavior to become part of the complete product experience.
+The perception loop uses the camera continuously in standby and runs face detection locally. A FreeRTOS task publishes recent face position and gesture state through atomics; an avatar modifier turns that state into eye offsets and safety-limited servo targets. Manual MCP head commands temporarily take priority so autonomous tracking cannot immediately overwrite an intentional movement.
 
-The robot exposes physical abilities to its AI agent through Model Context Protocol tools. I added tools that:
+The face is rendered as aligned LVGL layers over a character base: brows, eyelids, pupils and highlights, mouth poses, blush, shadows, hair foreground, and anime effect symbols. The animation engine schedules poses by duration rather than treating every property as a smooth tween. Speech uses emotion-specific closed, medium, and open mouth states; blinks use short in-between frames and long open-eye holds.
 
-- Report recent head-touch gestures and shaking
-- Preserve event timing and interaction counts across asynchronous tasks
-- Control all 12 body LEDs individually for expressive patterns
-- Return structured errors when generated tool input is invalid
+The agent receives physical abilities through Model Context Protocol tools. Touch and IMU events originate in independent FreeRTOS tasks, so I added a lock-free interaction record containing event age and count rather than exposing transient booleans. LED input is parsed into validated patterns for 12 independently addressable pixels. Camera, servo, reminder, interaction, and curiosity tools expose concrete device state to the conversation agent.
 
-The architecture separates the embedded character and hardware-control system from the language-model backend. This allows Yuki's animation, perception, and physical behavior to remain native to the robot without locking the project to one runtime AI provider.
+Curiosity is a separate on-device scheduler, not a hard-coded backend feature. It stores interests and timing preferences, checks conversation state and recent visual presence, then asks the configured Xiaozhi-compatible runtime to research and choose one item. This keeps Yuki’s body, senses, timing, and tool interface on the robot while allowing the language model and search service to be replaced.
 
-OpenAI Codex was my engineering collaborator throughout the project. I used it to investigate an unfamiliar firmware codebase, distinguish between different StackChan software lineages, trace hardware events across FreeRTOS tasks, inspect OTA behavior, protect device-specific calibration data, design the MCP interface, implement C++ changes, review failure cases, and verify the firmware build.
+## How I used Codex and GPT-5.6
 
-I made the product decisions: Yuki's character, interaction model, autonomous behavior, privacy boundaries, and the requirement that her face, voice, movement, and light behave as one coordinated expression system.
+Codex with GPT-5.6 was the engineering environment used to build Yuki during the hackathon. It traced an unfamiliar embedded codebase across C++, FreeRTOS tasks, LVGL objects, device drivers, a nested runtime dependency, and the flash layout; implemented and reviewed the firmware changes; compiled the ESP-IDF project; flashed the physical robot; and diagnosed failures from the live USB serial log.
+
+The collaboration was iterative and hardware-driven. I specified the product behavior and animation direction, tested each build on the robot, and reported what I could see and hear. Codex then followed the relevant execution path, changed the code, rebuilt, flashed, and checked the device log. That loop caught issues that a simulator would miss: an eyelid layer with the wrong geometry, blush spanning the whole face, a mouth pose that looked aggressive at speech speed, autonomous tracking overriding manual head commands, a camera request exhausting internal SRAM, and an OTA path repeatedly checking for updates that this project does not use.
+
+I made the product decisions: Yuki’s identity, the three wake interactions, the use of Japanese limited-animation principles, the balance between attention and interruption, the decision to keep the runtime AI backend replaceable, and the requirement that the face and physical body behave as one performance. Codex accelerated code archaeology, implementation, verification, and debugging; it did not choose the product for me.
+
+This project also exposed the boundary of that collaboration. Codex was strongest when source code, build output, protocol messages, and serial logs made a failure observable. It could not independently judge whether a servo actually moved naturally, whether electrical noise was audible, or whether a facial layer preserved the character’s appeal; those required direct human observation. It also sometimes inferred long-term success from a short log window. One Codex-proposed fix moved a vision task stack into PSRAM based on available-memory reasoning, but ESP-DL froze the flash cache while mapping its model partition and the external stack caused an assertion and reboot loop. My physical observation supplied the missing evidence; Codex then traced the backtrace, rejected its earlier assumption, and redesigned task creation and model activation separately.
+
+The experience suggests concrete improvements for embedded use: express uncertainty when telemetry proves only that a command was issued; distinguish software state from physical behavior; check chip-specific memory capabilities and cache rules before flashing; preserve a known-good image for automatic rollback; and collect persistent telemetry without resetting the target when a monitor attaches. Codex was highly effective inside a disciplined hardware feedback loop, not as a substitute for that loop.
 
 ## Challenges
 
-### Working safely with real hardware
+### Running the complete experience on an ESP32-S3
 
-The robot stores irreplaceable servo calibration and device identity in a small NVS partition. A normal-looking factory erase would destroy that information. I had to understand the complete flash layout, OTA slot selection, rollback behavior, and erase boundaries before modifying the device.
+Audio streaming, wake-word detection, continuous camera capture, face detection, LVGL animation, networking, and two servos compete for the same CPU and memory. One camera implementation had enough total PSRAM but failed because creating another encoder thread required scarce internal SRAM. I replaced that path with synchronous JPEG encoding into PSRAM and treated task stacks, heap capabilities, and request latency as separate constraints rather than one “free memory” number.
 
-### Connecting asynchronous senses to an AI agent
+Startup order became a hardware constraint. Loading the face detector before the secure runtime connection completed left too little contiguous internal memory for TLS and caused MQTT writes to fail. Starting the vision task only after the connection succeeded avoided the TLS collision, but by then allocating its 10 KB internal task stack could fail because the heap was fragmented. Moving the task stack into PSRAM looked like the obvious fix, but ESP-DL maps its model partition by temporarily freezing the flash cache; an executing task cannot safely keep its stack in external RAM during that operation, so the device hit `s_task_stack_is_sane_when_cache_frozen()` and entered a reboot loop.
 
-Touch and IMU events are pushed from independent FreeRTOS tasks, while MCP tools are requested by the agent on demand. I built a thread-safe interaction log using atomics so the agent can ask what happened, how recently it happened, and how often it has happened.
+The working design separates task creation from model activation. Yuki reserves the vision task's stack in internal RAM early in boot, keeps that task blocked while TLS, MQTT, and MCP initialize, and only loads the frame buffer and face model after the runtime reaches the listening state. This preserves a cache-safe internal stack without making the face model compete with the network handshake.
 
-### Making expression feel coherent
+### Modifying real hardware without destroying calibration
 
-An animated face alone is not enough. Eyes, mouth, head movement, LEDs, voice, and physical reactions must agree in both emotion and timing. Small synchronization problems can make an otherwise sophisticated character feel mechanical.
+The robot’s NVS partition contains unit-specific yaw and pitch zero positions plus its device identity. Erasing the flash would permanently lose those values. I mapped the complete 16 MB layout, preserved NVS, enlarged the application partition, added dedicated face-model and asset partitions, verified OTA boot selection and rollback behavior, and flashed only known regions. The tilt axis is also mechanically limited, so every autonomous and model-requested movement is clamped before reaching the servo.
 
-### Balancing autonomy with interruption
+### Sharing one camera between continuous perception and agent tools
 
-A companion that initiates conversations can quickly become distracting. Yuki needs to consider presence, recent interaction, user preferences, and whether the user responds before deciding to continue or quietly return to idle exploration.
+Face tracking must never appear asleep, but the agent also needs the camera for visual questions. Both paths touch the same capture device and large frame buffers. I added a mutex-protected capture path and explicit ownership so always-on perception can pause for a photo and resume without corrupting a frame or allocating a second full camera pipeline.
 
-### Building within embedded constraints
+### Making a static character face feel naturally animated
 
-Face tracking, animation, audio, networking, and servo control share limited CPU time, memory, flash, and power on an ESP32-S3. Every feature must be designed as part of one constrained real-time system.
+The hardest visual problem was not drawing more frames. It was making a detailed anime face feel alive without destroying the original illustration or turning it into mechanical UI animation. Smoothly rotating eyebrows, scaling one generic mouth from audio volume, or evenly interpolating an eyelid all produced uncanny results.
+
+I rebuilt the face around Japanese limited-animation techniques. The high-quality base drawing remains still while aligned replacement layers handle brows, eyelids, pupils, highlights, mouth shapes, blush, shadows, hair foreground, and symbolic effects. Blinks use **me-pachi** timing: a long open-eye hold, one very short half-lid frame, one or two closed frames, then a fast return. Speech uses **kuchi-paku** sets of closed, medium, and open drawings made separately for each emotion instead of stretching one mouth. Reactions use held key poses, **tame** before the action, tightly timed **tsume** at the change, and delayed follow-through in the hair, head, or LEDs.
+
+Layer geometry had to remain anchored across every pose. A closed eyelid can be only a few pixels tall, but its corners must land on exactly the same points as the open eye. Blush must sit on the cheeks rather than span the face. The maximum talking mouth had to stay small enough to preserve Yuki’s character design. These were tuned on the physical 320 × 240 display, because a pose that looked acceptable in source coordinates could still feel wrong at the robot’s real size and speech speed.
+
+The result uses dozens of carefully timed states rather than hundreds of continuous frames. Static periods require no redraw, breathing updates only a few times per second, blinks are event-driven, and higher frame rates are reserved for short emotional reactions. This made natural character acting possible within the ESP32-S3’s memory and rendering limits.
+
+### Making separate systems perform as one character
+
+A valid facial animation can still fail if the physical channels disagree with it. A head command appears broken if face tracking overwrites it on the next cycle; a cheerful voice feels wrong with an angry LED pattern; simultaneous eye, head, and hair motion looks robotic. I added behavior priority, manual-control windows, staggered movement, and delayed physical follow-through so gaze, expression, voice, servos, and LEDs share one performance rather than running as unrelated effects.
+
+Microphone and servo coordination required another state-machine fix. Physical head movement can inject enough electrical and mechanical noise to trigger voice activity detection, so tracking pauses briefly when the user starts speaking. The first implementation extended an 800 ms deadline on every update while `voice_detected` remained true. A stale VAD state therefore turned a short pause into an indefinite freeze after a conversation. The final implementation triggers one bounded 1.2 second pause only on the speech-state rising edge; a stuck VAD value cannot keep the head disabled, and tracking resumes without waiting for the entire conversation to reset.
+
+### Giving an AI truthful knowledge of its body
+
+The conversation model initially claimed it had no camera even though the hardware and MCP implementation existed. The fix was not to pretend in a system prompt. I verified the MCP initialization handshake, tool enumeration, descriptions, and calls over the live protocol, then described each capability with concrete ranges and usage rules. The agent can now discover what the robot can actually sense and do.
 
 ## What I learned
 
-I learned that embodiment is not created by putting a chatbot inside a plastic shell. Physical presence comes from timing, attention, memory, and coordinated expression.
+Embodiment is a scheduling problem as much as a model problem. Presence comes from keeping perception active, choosing which behavior owns the body at a given moment, and making voice, gaze, expression, light, and motion agree within a few hundred milliseconds.
 
-I also learned that MCP is useful beyond software automation. It provides a clean boundary between an AI agent and physical capabilities, allowing a model to understand touch, movement, and light as meaningful tools rather than device-specific commands.
+Limited animation is especially effective on embedded hardware because it spends resources on readable poses and timing instead of frame count. The result is both cheaper to render and more expressive than mechanically interpolating every facial feature.
 
-Most importantly, autonomy is not simply doing more without being asked. A good companion must also know when to wait, when to approach, and when to leave someone alone.
+MCP also works well as a boundary between an AI and a physical device. The model does not need access to servo packets, GPIOs, or FreeRTOS events. It needs truthful, typed capabilities such as “move the head safely,” “what interaction just happened,” and “show this LED pattern,” while deterministic firmware retains authority over hardware limits and timing.
+
+Finally, proactive behavior requires restraint. Yuki’s curiosity is gated by recent presence and idle state because starting fewer relevant conversations is better than producing more interruptions.
 
 ## Built with
 
 - OpenAI Codex
-- C
-- C++
-- ESP-IDF
+- GPT-5.6
+- C and C++
+- ESP-IDF 5.5.4
 - FreeRTOS
 - LVGL
+- ESP-DL
 - Model Context Protocol (MCP)
 - ESP32-S3
-- M5Stack StackChan
+- M5Stack StackChan K151
 - CMake
-- GitHub
+- Git and GitHub

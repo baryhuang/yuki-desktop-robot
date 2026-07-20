@@ -177,13 +177,13 @@ void YukiEyes::apply()
 
 YukiMouth::YukiMouth(lv_obj_t* parent)
 {
-    mouth_mask_ = make_shape(parent, 38, 18, kSkin, LV_RADIUS_CIRCLE);
-    mouth_ = make_shape(parent, 28, 3, kMouth, LV_RADIUS_CIRCLE);
-    lv_obj_set_style_transform_pivot_x(mouth_, 14, LV_PART_MAIN);
-    lv_obj_set_style_transform_pivot_y(mouth_, 4, LV_PART_MAIN);
-    tongue_ = make_shape(mouth_, 18, 7, kTongue, LV_RADIUS_CIRCLE);
-    left_corner_ = make_shape(parent, 6, 3, kMouth, LV_RADIUS_CIRCLE);
-    right_corner_ = make_shape(parent, 6, 3, kMouth, LV_RADIUS_CIRCLE);
+    mouth_mask_ = make_shape(parent, 30, 14, kSkin, LV_RADIUS_CIRCLE);
+    mouth_ = make_shape(parent, 20, 2, kMouth, LV_RADIUS_CIRCLE);
+    lv_obj_set_style_transform_pivot_x(mouth_, 10, LV_PART_MAIN);
+    lv_obj_set_style_transform_pivot_y(mouth_, 3, LV_PART_MAIN);
+    tongue_ = make_shape(mouth_, 10, 3, kTongue, LV_RADIUS_CIRCLE);
+    left_corner_ = make_shape(parent, 4, 2, kMouth, LV_RADIUS_CIRCLE);
+    right_corner_ = make_shape(parent, 4, 2, kMouth, LV_RADIUS_CIRCLE);
 
     current_position_ = _position;
     apply();
@@ -257,17 +257,17 @@ void YukiMouth::apply()
     const int offset_x = map_value(current_position_.x, -100, 100, -10, 10);
     const int offset_y = map_value(current_position_.y, -100, 100, -7, 7);
     const int mouth_frame = current_weight_ < 25 ? 0 : (current_weight_ < 80 ? 1 : 2);
-    int width = mouth_frame == 0 ? 26 : (mouth_frame == 1 ? 24 : 28);
-    int height = mouth_frame == 0 ? 2 : (mouth_frame == 1 ? 10 : 21);
+    int width = mouth_frame == 0 ? 20 : (mouth_frame == 1 ? 17 : 19);
+    int height = mouth_frame == 0 ? 2 : (mouth_frame == 1 ? 6 : 10);
     int base_y = 29 + offset_y;
 
     if (emotion_ == Emotion::Happy) {
-        width += mouth_frame == 0 ? 3 : 6;
+        width += 2;
     } else if (emotion_ == Emotion::Angry) {
         width -= 2;
     } else if (emotion_ == Emotion::Doubt && mouth_frame == 2) {
-        width = 18;
-        height = 21;
+        width = 12;
+        height = 10;
     }
 
     if (emotion_ == Emotion::Sad) {
@@ -279,9 +279,9 @@ void YukiMouth::apply()
     align_center(mouth_, offset_x, base_y);
     lv_obj_set_style_transform_rotation(mouth_, current_rotation_, LV_PART_MAIN);
 
-    lv_obj_set_size(tongue_, std::max(12, width - 12), std::max(3, height / 3));
-    lv_obj_align(tongue_, LV_ALIGN_BOTTOM_MID, 0, 1);
-    if (height > 10) {
+    lv_obj_set_size(tongue_, std::max(8, width - 9), 3);
+    lv_obj_align(tongue_, LV_ALIGN_BOTTOM_MID, 0, 0);
+    if (mouth_frame == 2) {
         lv_obj_remove_flag(tongue_, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(tongue_, LV_OBJ_FLAG_HIDDEN);
@@ -363,12 +363,12 @@ void YukiAvatar::init(lv_obj_t* parent, const lv_font_t* font)
         ESP_LOGE("YukiAvatar", "Yuki portrait is missing from the assets partition");
     }
 
-    blush_left_ = make_shape(root, 34, 10, kBlush, LV_RADIUS_CIRCLE);
-    align_center(blush_left_, -57, 31);
-    blush_right_ = make_shape(root, 34, 10, kBlush, LV_RADIUS_CIRCLE);
-    align_center(blush_right_, 57, 31);
-    lv_obj_set_style_bg_opa(blush_left_, LV_OPA_20, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(blush_right_, LV_OPA_20, LV_PART_MAIN);
+    blush_left_ = make_shape(root, 6, 7, kBlush, LV_RADIUS_CIRCLE);
+    align_center(blush_left_, -44, 28);
+    blush_right_ = make_shape(root, 6, 7, kBlush, LV_RADIUS_CIRCLE);
+    align_center(blush_right_, 44, 28);
+    lv_obj_set_style_bg_opa(blush_left_, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(blush_right_, LV_OPA_TRANSP, LV_PART_MAIN);
 
     _key_elements.leftEye = std::make_unique<YukiEyes>(root, true);
     _key_elements.rightEye = std::make_unique<YukiEyes>(root, false);
@@ -380,11 +380,11 @@ void YukiAvatar::setEmotion(const Emotion& emotion)
 {
     Avatar::setEmotion(emotion);
 
-    lv_opa_t blush_opacity = LV_OPA_20;
+    lv_opa_t blush_opacity = LV_OPA_TRANSP;
     if (emotion == Emotion::Happy) {
         blush_opacity = LV_OPA_40;
     } else if (emotion == Emotion::Angry) {
-        blush_opacity = LV_OPA_20;
+        blush_opacity = LV_OPA_10;
     } else if (emotion == Emotion::Sleepy) {
         blush_opacity = LV_OPA_10;
     }

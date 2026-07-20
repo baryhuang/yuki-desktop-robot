@@ -77,19 +77,6 @@ enum class CommonLogLevel {
  * @brief
  *
  */
-namespace app_center {
-
-struct AppInfo_t {
-    std::string name;
-    std::string iconUrl;
-    std::string description;
-    std::string firmwareUrl;
-};
-
-using AppInfoList_t = std::vector<AppInfo_t>;
-
-};  // namespace app_center
-
 /**
  * @brief
  *
@@ -278,10 +265,6 @@ public:
     WifiStatus getWifiStatus();
     void startSntp();
 
-    /* -------------------------------- App center ------------------------------- */
-    app_center::AppInfoList_t fetchAppList();
-    void launchApp(std::string_view url, std::function<void(int)> onProgress);
-
     /* --------------------------------- EzData --------------------------------- */
     void startEzDataService(std::function<void(std::string_view)> onStartLog);
     uitk::Signal<std::string_view> onEzdataPairCode;
@@ -290,9 +273,6 @@ public:
     UserAccountInfo_t getUserAccountInfo();
     bool updateAccountInfo(std::function<void(std::string_view)> onLog);
     bool unbindAccount(std::function<void(std::string_view)> onLog);
-
-    /* ----------------------------------- OTA ---------------------------------- */
-    bool updateFirmware(std::function<void(std::string_view)> onLog);
 
     /* ---------------------------------- Audio --------------------------------- */
     void setSpeakerVolume(uint8_t volume, bool permanent = false);

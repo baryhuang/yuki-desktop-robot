@@ -251,13 +251,6 @@ private:
  * @brief
  *
  */
-class SystemUpdateWorker : public WorkerBase {
-public:
-    SystemUpdateWorker();
-    ~SystemUpdateWorker();
-    void update() override;
-};
-
 /**
  * @brief
  *

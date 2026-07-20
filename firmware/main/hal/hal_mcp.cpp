@@ -6,6 +6,7 @@
 #include "hal.h"
 #include <mooncake_log.h>
 #include <mcp_server.h>
+#include <stackchan/vision/yuki_vision.h>
 #include <stackchan/stackchan.h>
 #include <stackchan/curiosity/yuki_curiosity.h>
 #include <apps/common/common.h>
@@ -101,6 +102,21 @@ void Hal::xiaozhi_mcp_init()
     // You can control the robot's head. Use get_yaw and get_pitch to sense current position. Use set_yaw for horizontal
     // movement and set_pitch for vertical movement. All angles are in degrees.
 
+    mclog::tagInfo(_tag, "add camera.get_presence tool");
+    mcp_server.AddTool(
+        "self.camera.get_presence",
+        "Immediately report whether Yuki's always-on local camera has seen a person recently. MUST call this tool "
+        "when the user asks whether you can see them, whether they are in front of you, or whether anyone is there. "
+        "Do not claim that you lack a camera and do not ask permission. This is a fast local presence check; use "
+        "self.camera.take_photo instead when appearance, objects, text, colors, or scene details must be examined.",
+        std::vector<Property>{}, [this](const PropertyList& properties) -> ReturnValue {
+            const bool seen = stackchan::YukiFaceSeenRecently(2000);
+            auto result = fmt::format(R"({{"camera_active":true,"person_seen_recently":{}}})",
+                                      seen ? "true" : "false");
+            mclog::tagInfo(_tag, "camera presence: {}", result);
+            return result;
+        });
+
     mclog::tagInfo(_tag, "add robot.get_head_angles tool");
     mcp_server.AddTool("self.robot.get_head_angles",
                        "Returns current yaw/pitch in degrees. Neutral position is {yaw:0, pitch:0}.",
@@ -118,11 +134,11 @@ void Hal::xiaozhi_mcp_init()
 
     mclog::tagInfo(_tag, "add robot.set_head_angles tool");
     mcp_server.AddTool("self.robot.set_head_angles",
-                       "Adjust head position. GUIDELINES: "
-                       "1. For natural interaction, stay within +/- 45 degrees. "
-                       "2. Only use values > 70 if the user explicitly asks to look far away/behind. "
-                       "3. Max ranges: Yaw(-128 to 128, -128 as your left), Pitch(0 to 90, 90 as your up). "
-                       "Speed(100-1000, 150 is natural).",
+                       "Move Yuki's physical head to absolute yaw/pitch angles. Before a visible movement request, call "
+                       "self.robot.get_head_angles and choose a target at least 15 degrees away from the current value; "
+                       "do not send (0,0) unless returning to center. For natural interaction, stay within +/-45 degrees "
+                       "yaw and 5-70 degrees pitch. Max ranges: yaw -128 to 128 (-128 is Yuki's left), pitch 3 to 87 "
+                       "(87 is up). Speed is 100-1000; 250 is natural.",
                        PropertyList({Property("yaw", kPropertyTypeInteger, -9999, -9999, 128),
                                      Property("pitch", kPropertyTypeInteger, -9999, -9999, 90),
                                      Property("speed", kPropertyTypeInteger, 150, 100, 1000)}),
@@ -136,6 +152,8 @@ void Hal::xiaozhi_mcp_init()
                            LvglLockGuard lock;
 
                            auto& motion = GetStackChan().motion();
+                           stackchan::YieldYukiFaceTracking(3000);
+                           motion.setModifyLock(false);
                            if (pitch != -9999) {
                                motion.pitchServo().moveWithSpeed(pitch * 10, speed);
                            }

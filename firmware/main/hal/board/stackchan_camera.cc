@@ -1074,44 +1074,16 @@ std::string StackChanCamera::Explain(const std::string& question)
         throw std::runtime_error("Image explain URL or token is not set");
     }
 
-    // 创建局部的 JPEG 队列, 40 entries is about to store 512 * 40 = 20480 bytes of JPEG data
-    QueueHandle_t jpeg_queue = xQueueCreate(40, sizeof(JpegChunk));
-    if (jpeg_queue == nullptr) {
-        ESP_LOGE(TAG, "Failed to create JPEG queue");
-        throw std::runtime_error("Failed to create JPEG queue");
+    uint8_t* jpeg_data = nullptr;
+    size_t jpeg_size   = 0;
+    const uint16_t width = frame_.width ? frame_.width : 320;
+    const uint16_t height = frame_.height ? frame_.height : 240;
+    if (!image_to_jpeg(frame_.data, frame_.len, width, height, frame_.format, 72, &jpeg_data, &jpeg_size) ||
+        jpeg_data == nullptr || jpeg_size == 0) {
+        ESP_LOGE(TAG, "JPEG encoder failed or produced empty output");
+        throw std::runtime_error("Failed to encode image to JPEG");
     }
-
-    // We spawn a thread to encode the image to JPEG using optimized encoder (cost about 500ms and 8KB SRAM)
-    encoder_thread_ = std::thread([this, jpeg_queue]() {
-        uint16_t w             = frame_.width ? frame_.width : 320;
-        uint16_t h             = frame_.height ? frame_.height : 240;
-        v4l2_pix_fmt_t enc_fmt = frame_.format;
-        bool ok                = image_to_jpeg_cb(
-                           frame_.data, frame_.len, w, h, enc_fmt, 80,
-                           [](void* arg, size_t index, const void* data, size_t len) -> size_t {
-                auto jpeg_queue = static_cast<QueueHandle_t>(arg);
-                JpegChunk chunk = {.data = nullptr, .len = len};
-                if (index == 0 && data != nullptr && len > 0) {
-                    chunk.data = (uint8_t*)heap_caps_aligned_alloc(16, len, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-                    if (chunk.data == nullptr) {
-                        ESP_LOGE(TAG, "Failed to allocate %zu bytes for JPEG chunk", len);
-                        chunk.len = 0;
-                    } else {
-                        memcpy(chunk.data, data, len);
-                    }
-                } else {
-                    chunk.len = 0;  // Sentinel or error
-                }
-                xQueueSend(jpeg_queue, &chunk, portMAX_DELAY);
-                return len;
-                           },
-                           jpeg_queue);
-
-        if (!ok) {
-            JpegChunk chunk = {.data = nullptr, .len = 0};
-            xQueueSend(jpeg_queue, &chunk, portMAX_DELAY);
-        }
-    });
+    std::unique_ptr<uint8_t, decltype(&heap_caps_free)> jpeg_guard(jpeg_data, heap_caps_free);
 
     auto network = Board::GetInstance().GetNetwork();
     auto http    = network->CreateHttp(3);
@@ -1128,17 +1100,6 @@ std::string StackChanCamera::Explain(const std::string& question)
     http->SetHeader("Transfer-Encoding", "chunked");
     if (!http->Open("POST", explain_url_)) {
         ESP_LOGE(TAG, "Failed to connect to explain URL");
-        // Clear the queue
-        encoder_thread_.join();
-        JpegChunk chunk;
-        while (xQueueReceive(jpeg_queue, &chunk, portMAX_DELAY) == pdPASS) {
-            if (chunk.data != nullptr) {
-                heap_caps_free(chunk.data);
-            } else {
-                break;
-            }
-        }
-        vQueueDelete(jpeg_queue);
         throw std::runtime_error("Failed to connect to explain URL");
     }
 
@@ -1162,31 +1123,7 @@ std::string StackChanCamera::Explain(const std::string& question)
     }
 
     // 第三块：JPEG数据
-    size_t total_sent   = 0;
-    bool saw_terminator = false;
-    while (true) {
-        JpegChunk chunk;
-        if (xQueueReceive(jpeg_queue, &chunk, portMAX_DELAY) != pdPASS) {
-            ESP_LOGE(TAG, "Failed to receive JPEG chunk");
-            break;
-        }
-        if (chunk.data == nullptr) {
-            saw_terminator = true;
-            break;  // The last chunk
-        }
-        http->Write((const char*)chunk.data, chunk.len);
-        total_sent += chunk.len;
-        heap_caps_free(chunk.data);
-    }
-    // Wait for the encoder thread to finish
-    encoder_thread_.join();
-    // 清理队列
-    vQueueDelete(jpeg_queue);
-
-    if (!saw_terminator || total_sent == 0) {
-        ESP_LOGE(TAG, "JPEG encoder failed or produced empty output");
-        throw std::runtime_error("Failed to encode image to JPEG");
-    }
+    http->Write(reinterpret_cast<const char*>(jpeg_data), jpeg_size);
 
     {
         // 第四块：multipart尾部
@@ -1199,6 +1136,7 @@ std::string StackChanCamera::Explain(const std::string& question)
 
     if (http->GetStatusCode() != 200) {
         ESP_LOGE(TAG, "Failed to upload photo, status code: %d", http->GetStatusCode());
+        http->Close();
         throw std::runtime_error("Failed to upload photo");
     }
 
@@ -1208,6 +1146,6 @@ std::string StackChanCamera::Explain(const std::string& question)
     // Get remain task stack size
     size_t remain_stack_size = uxTaskGetStackHighWaterMark(nullptr);
     ESP_LOGI(TAG, "Explain image size=%d bytes, compressed size=%d, remain stack size=%d, question=%s\n%s",
-             (int)frame_.len, (int)total_sent, (int)remain_stack_size, question.c_str(), result.c_str());
+             (int)frame_.len, (int)jpeg_size, (int)remain_stack_size, question.c_str(), result.c_str());
     return result;
 }

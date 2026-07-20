@@ -8,6 +8,7 @@
 #include "../avatar/decorators/decorators.h"
 #include "../utils/random.h"
 #include <smooth_ui_toolkit.hpp>
+#include <hal/board/hal_bridge.h>
 #include <hal/hal.h>
 #include <cstdint>
 #include <memory>
@@ -24,8 +25,9 @@ public:
     {
         // 绑定信号
         _signal_connection = GetHAL().onHeadPetGesture.connect([this](HeadPetGesture gesture) {
-            if (gesture == HeadPetGesture::SwipeForward || gesture == HeadPetGesture::SwipeBackward) {
-                _event_swipe = true;
+            if (gesture == HeadPetGesture::Press || gesture == HeadPetGesture::SwipeForward ||
+                gesture == HeadPetGesture::SwipeBackward) {
+                _event_pet = true;
             } else if (gesture == HeadPetGesture::Release) {
                 _event_release = true;
             }
@@ -42,9 +44,9 @@ public:
         uint32_t now = GetHAL().millis();
 
         // 处理“被抚摸中”事件
-        if (_event_swipe) {
-            _event_swipe = false;
-            handle_swipe(stackchan);
+        if (_event_pet) {
+            _event_pet = false;
+            handle_pet(stackchan);
             // 只要在摸，就推迟恢复时间
             _is_waiting_restore = false;
         }
@@ -52,6 +54,9 @@ public:
         // 处理“手松开”事件
         if (_event_release) {
             _event_release = false;
+            if (hal_bridge::is_xiaozhi_ready() && hal_bridge::is_xiaozhi_idle()) {
+                hal_bridge::toggle_xiaozhi_chat_state();
+            }
             if (_in_happy_state) {
                 _is_waiting_restore = true;
                 _restore_tick       = now + _restore_delay_ms;
@@ -66,7 +71,7 @@ public:
     }
 
 private:
-    void handle_swipe(Modifiable& stackchan)
+    void handle_pet(Modifiable& stackchan)
     {
         auto& avatar = stackchan.avatar();
 
@@ -142,7 +147,7 @@ private:
 
     // 信号相关
     int _signal_connection;
-    volatile bool _event_swipe   = false;
+    volatile bool _event_pet     = false;
     volatile bool _event_release = false;
 
     // 状态机相关

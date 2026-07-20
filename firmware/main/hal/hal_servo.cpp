@@ -350,12 +350,18 @@ void Hal::servo_init()
     pitch_servo_config.rawPosLimit            = Vector2i(0, 1000);
     pitch_servo_config.settingNs              = "servo";
     pitch_servo_config.settingZeroPositionKey = "zero_pos_2";
-    pitch_servo_config.enableStallProtection  = true;
+    // This K151 servo bus does not return valid position/current feedback.
+    // Feedback polling blocks time-critical camera and audio processing.
+    pitch_servo_config.enableStallProtection  = false;
 
     auto yaw_servo   = std::make_unique<ScsServo>(yaw_servo_config);
     auto pitch_servo = std::make_unique<ScsServo>(pitch_servo_config);
     auto motion      = std::make_unique<Motion>(std::move(yaw_servo), std::move(pitch_servo));
     motion->init();
+
+    // Home is the calibrated logical origin, not the 45-degree example pose
+    // shown in the servo documentation. Always restore it after a reboot.
+    motion->goHome(120);
 
     GetStackChan().attachMotion(std::move(motion));
 }

@@ -181,6 +181,18 @@ StackChanAvatarDisplay::StackChanAvatarDisplay(esp_lcd_panel_io_handle_t panel_i
     };
     esp_timer_create(&preview_timer_args, &preview_timer_);
 
+    esp_timer_create_args_t notification_timer_args = {
+        .callback =
+            [](void* arg) {
+                static_cast<StackChanAvatarDisplay*>(arg)->ClearChatMessages();
+            },
+        .arg                   = this,
+        .dispatch_method       = ESP_TIMER_TASK,
+        .name                  = "yuki_notice",
+        .skip_unhandled_events = true,
+    };
+    esp_timer_create(&notification_timer_args, &notification_timer_);
+
     // Create boot logo label if not warm boot
     if (GetHAL().getWarmRebootTarget() < 0) {
         ESP_LOGI(TAG, "Create boot logo label");
@@ -203,6 +215,11 @@ StackChanAvatarDisplay::~StackChanAvatarDisplay()
     if (preview_timer_ != nullptr) {
         esp_timer_stop(preview_timer_);
         esp_timer_delete(preview_timer_);
+    }
+
+    if (notification_timer_ != nullptr) {
+        esp_timer_stop(notification_timer_);
+        esp_timer_delete(notification_timer_);
     }
 
     if (preview_image_ != nullptr) {
@@ -284,8 +301,9 @@ void StackChanAvatarDisplay::SetupUI()
 
     // GetHAL().startStackChanAutoUpdate(24);
 
-    auto config        = hal_bridge::get_xiaozhi_config();
-    idle_motion_level_ = config.idleRandomMovementLevel;
+    // Yuki stays physically still before wake-up. Face tracking owns the head
+    // only while a conversation is active; idle character animation is visual.
+    idle_motion_level_ = 0;
 
     ESP_LOGI(TAG, "Avatar created and started");
 }
@@ -361,6 +379,8 @@ void StackChanAvatarDisplay::SetEmotion(const char* emotion)
         if (idle_motion_modifier_id_ >= 0) {
             stackchan.removeModifier(idle_motion_modifier_id_);
             idle_motion_modifier_id_ = -1;
+        }
+        if (idle_expression_modifier_id_ >= 0) {
             stackchan.removeModifier(idle_expression_modifier_id_);
             idle_expression_modifier_id_ = -1;
         }
@@ -397,6 +417,10 @@ void StackChanAvatarDisplay::SetChatMessage(const char* role, const char* conten
     // ESP_LOGE(TAG, "SetChatMessage: role=%s, content=%s", role ? role : "null", content ? content : "null");
 
     DisplayLockGuard lock(this);
+
+    if (notification_timer_ != nullptr) {
+        esp_timer_stop(notification_timer_);
+    }
 
     if (strcmp(role, "system") == 0) {
         stackchan.avatar().setSpeech(content);
@@ -496,9 +520,17 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
 
     DisplayLockGuard lock(this);
 
+    if (notification_timer_ != nullptr) {
+        esp_timer_stop(notification_timer_);
+    }
+
     bool is_idle = false;
 
     if (strcmp(status, Lang::Strings::LISTENING) == 0) {
+        // TLS/MQTT setup has completed by the time listening begins. Loading
+        // the face model earlier can starve the connection handshake.
+        EnableYukiVision();
+
         if (speaking_modifier_id_ >= 0) {
             // Start speaking
             stackchan.removeModifier(speaking_modifier_id_);
@@ -542,12 +574,9 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
     }
 
     if (is_idle) {
-        // Start idle motion
-        ESP_LOGW(TAG, "Start idle motion");
-        if (idle_motion_modifier_id_ < 0) {
-            if (idle_motion_level_ > 0) {
-                CreateIdleMotionModifier();
-            }
+        // Keep facial idle animation, but never install the random head-motion modifier.
+        ESP_LOGW(TAG, "Start idle expression (physical head remains still)");
+        if (idle_expression_modifier_id_ < 0) {
             idle_expression_modifier_id_ = stackchan.addModifier(std::make_unique<IdleExpressionModifier>());
         }
 
@@ -558,6 +587,8 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
         if (idle_motion_modifier_id_ >= 0) {
             stackchan.removeModifier(idle_motion_modifier_id_);
             idle_motion_modifier_id_ = -1;
+        }
+        if (idle_expression_modifier_id_ >= 0) {
             stackchan.removeModifier(idle_expression_modifier_id_);
             idle_expression_modifier_id_ = -1;
         }
@@ -579,4 +610,18 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
 
 void StackChanAvatarDisplay::ShowNotification(const char* notification, int duration_ms)
 {
+    auto& stackchan = GetStackChan();
+    if (!stackchan.hasAvatar() || notification == nullptr) {
+        return;
+    }
+
+    DisplayLockGuard lock(this);
+    stackchan.avatar().setSpeech(notification);
+
+    if (notification_timer_ != nullptr) {
+        esp_timer_stop(notification_timer_);
+        if (duration_ms > 0) {
+            ESP_ERROR_CHECK(esp_timer_start_once(notification_timer_, static_cast<uint64_t>(duration_ms) * 1000));
+        }
+    }
 }
