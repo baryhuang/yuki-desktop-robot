@@ -59,7 +59,7 @@ public:
         // 嘴巴开合动画
         if (now >= _next_mouth_tick) {
             _next_mouth_tick = now + _mouth_interval_ms;
-            animate_mouth(stackchan.avatar());
+            animate_mouth(stackchan);
         }
 
         // 身体微动动作
@@ -71,7 +71,7 @@ public:
     }
 
 private:
-    void animate_mouth(avatar::Avatar& avatar)
+    void animate_mouth(Modifiable& stackchan)
     {
         _is_mouth_open = !_is_mouth_open;
         auto& random   = Random::getInstance();
@@ -79,13 +79,27 @@ private:
         int weight = _is_mouth_open ? random.getInt(_open_min_weight, _open_max_weight)
                                     : random.getInt(_close_min_weight, _close_max_weight);
 
-        avatar.mouth().setWeight(weight);
+        stackchan.avatar().mouth().setWeight(weight);
+
+        // A soft two-color pulse makes speech visible without overpowering Yuki's face.
+        auto& left_light  = stackchan.leftNeonLight();
+        auto& right_light = stackchan.rightNeonLight();
+        left_light.setDuration(0.16f);
+        right_light.setDuration(0.16f);
+        if (_is_mouth_open) {
+            left_light.setColor(10, 38, 52);
+            right_light.setColor(42, 16, 30);
+        } else {
+            left_light.setColor(3, 8, 12);
+            right_light.setColor(10, 3, 6);
+        }
     }
 
     void perform_subtle_speaking_motion(Modifiable& stackchan)
     {
         auto& motion = stackchan.motion();
-        if (motion.isMoving()) {
+        // Face tracking owns the head while a face is present.
+        if (motion.isModifyLocked() || motion.isMoving()) {
             return;
         }
 

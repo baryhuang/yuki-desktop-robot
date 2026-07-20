@@ -14,12 +14,12 @@ Implemented during the hackathon:
 - On-device ESP-DL face detection with coordinated eye gaze and safety-limited pan/tilt tracking
 - Camera motion analysis that recognizes a deliberate left-right wave and wakes the conversation from standby
 - A mutex-protected camera path that allows continuous perception to coexist with photos and visual questions
+- Speech-state coordination that synchronizes Yuki's mouth, safety-aware head gestures, and two-color LED pulses while preserving face-tracking priority
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 - A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
 In active development:
 
-- Coordinated facial animation, head motion, voice, and LED expression
 - Interest-guided web exploration and proactive conversation while idle
 - Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
 

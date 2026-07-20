@@ -491,12 +491,10 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
     }
 
     auto& avatar = stackchan.avatar();
-    auto& motion = stackchan.motion();
 
     DisplayLockGuard lock(this);
 
-    bool is_idle      = false;
-    bool is_listening = false;
+    bool is_idle = false;
 
     if (strcmp(status, Lang::Strings::LISTENING) == 0) {
         if (speaking_modifier_id_ >= 0) {
@@ -506,8 +504,10 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
             speaking_modifier_id_ = -1;
         }
 
-        GetHAL().setRgbColor(0, 0, 50, 0);
-        GetHAL().refreshRgb();
+        stackchan.leftNeonLight().setDuration(0.25f);
+        stackchan.rightNeonLight().setDuration(0.25f);
+        stackchan.leftNeonLight().setColor(4, 34, 42);
+        stackchan.rightNeonLight().setColor(4, 34, 42);
 
     } else if (strcmp(status, Lang::Strings::STANDBY) == 0) {
         _is_xiaozhi_ready = true;
@@ -521,16 +521,20 @@ void StackChanAvatarDisplay::SetStatus(const char* status)
 
         is_idle = true;
 
-        GetHAL().setRgbColor(0, 0, 0, 0);
-        GetHAL().refreshRgb();
+        stackchan.leftNeonLight().setDuration(0.35f);
+        stackchan.rightNeonLight().setDuration(0.35f);
+        stackchan.leftNeonLight().setColor(0, 0, 0);
+        stackchan.rightNeonLight().setColor(0, 0, 0);
 
     } else if (strcmp(status, Lang::Strings::SPEAKING) == 0) {
         if (speaking_modifier_id_ < 0) {
-            speaking_modifier_id_ = stackchan.addModifier(std::make_unique<SpeakingModifier>(0, 180, false));
+            speaking_modifier_id_ = stackchan.addModifier(std::make_unique<SpeakingModifier>(0, 180, true));
         }
 
-        GetHAL().setRgbColor(0, 0, 0, 50);
-        GetHAL().refreshRgb();
+        stackchan.leftNeonLight().setDuration(0.18f);
+        stackchan.rightNeonLight().setDuration(0.18f);
+        stackchan.leftNeonLight().setColor(3, 8, 12);
+        stackchan.rightNeonLight().setColor(10, 3, 6);
     } else {
         avatar.setSpeech(status);
     }
