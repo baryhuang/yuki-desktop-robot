@@ -249,9 +249,9 @@ void StackChanAvatarDisplay::SetupUI()
 
     DisplayLockGuard lock(this);
 
-    ESP_LOGI(TAG, "Creating Stack-chan Avatar...");
+    ESP_LOGI(TAG, "Creating Yuki Avatar...");
 
-    auto avatar = std::make_unique<DefaultAvatar>();
+    auto avatar = std::make_unique<YukiAvatar>();
     avatar->init(lv_screen_active());
     avatar->getPanel()->onClick().connect([]() {
         static uint32_t last_toggle_tick = 0;
