@@ -394,6 +394,8 @@ void StackChanCamera::SetExplainUrl(const std::string& url, const std::string& t
 
 bool StackChanCamera::Capture()
 {
+    std::lock_guard<std::mutex> lock(capture_mutex_);
+
     if (encoder_thread_.joinable()) {
         encoder_thread_.join();
     }
@@ -851,8 +853,50 @@ bool StackChanCamera::Capture()
     return true;
 }
 
+bool StackChanCamera::CaptureForVision(uint8_t* destination, size_t capacity, size_t& length, int& width, int& height,
+                                       int& format)
+{
+    if (destination == nullptr || capacity == 0) {
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(capture_mutex_);
+    if (!streaming_on_ || video_fd_ < 0) {
+        return false;
+    }
+
+    struct v4l2_buffer buffer = {};
+    buffer.type               = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buffer.memory             = V4L2_MEMORY_MMAP;
+    if (ioctl(video_fd_, VIDIOC_DQBUF, &buffer) != 0) {
+        ESP_LOGE(TAG, "Vision VIDIOC_DQBUF failed, errno=%d(%s)", errno, strerror(errno));
+        return false;
+    }
+
+    bool success = false;
+    if (buffer.index < mmap_buffers_.size() && buffer.bytesused <= capacity) {
+        memcpy(destination, mmap_buffers_[buffer.index].start, buffer.bytesused);
+        length = buffer.bytesused;
+        width  = frame_.width;
+        height = frame_.height;
+        format = sensor_format_ == V4L2_PIX_FMT_YUV422P ? V4L2_PIX_FMT_YUYV : sensor_format_;
+        success = true;
+    } else {
+        ESP_LOGW(TAG, "Vision frame does not fit: index=%lu bytes=%lu capacity=%lu", buffer.index, buffer.bytesused,
+                 capacity);
+    }
+
+    if (ioctl(video_fd_, VIDIOC_QBUF, &buffer) != 0) {
+        ESP_LOGE(TAG, "Vision VIDIOC_QBUF failed, errno=%d(%s)", errno, strerror(errno));
+        return false;
+    }
+    return success;
+}
+
 bool StackChanCamera::StreamCaptures()
 {
+    std::lock_guard<std::mutex> lock(capture_mutex_);
+
     if (encoder_thread_.joinable()) {
         encoder_thread_.join();
     }

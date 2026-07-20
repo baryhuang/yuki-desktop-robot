@@ -10,15 +10,18 @@ Implemented during the hackathon:
 
 - `self.robot.get_recent_interaction`, an MCP tool that reports recent head-touch gestures and shaking with event age and counts
 - `self.robot.set_led_pattern`, an MCP tool that controls all 12 body LEDs individually or as repeating patterns
+- An original native C++/LVGL Yuki character skin with animated eyes, mouth, gaze, blinking, speech, and emotion states
+- On-device ESP-DL face detection with coordinated eye gaze and safety-limited pan/tilt tracking
+- Camera motion analysis that recognizes a deliberate left-right wave and wakes the conversation from standby
+- A mutex-protected camera path that allows continuous perception to coexist with photos and visual questions
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
+- A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
 In active development:
 
-- Camera-based face following
-- Visual gesture wake-up
-- An original, fully animated Yuki facial-expression system replacing the stock expression library
 - Coordinated facial animation, head motion, voice, and LED expression
 - Interest-guided web exploration and proactive conversation while idle
+- Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
 
 The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
 
@@ -46,7 +49,7 @@ idf.py build
 
 ## Flash
 
-Use a full `idf.py flash`, not `app-flash`. The factory partition layout has dual OTA slots and no factory app slot, so an app-only flash may write an image that the device does not boot.
+Use a full `idf.py flash`, not `app-flash`. Yuki uses a custom dual-OTA layout with separate face-model and asset partitions, so an app-only flash omits required runtime data.
 
 ```sh
 cd firmware
