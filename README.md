@@ -1,32 +1,71 @@
-# StackChan Open-Source
+# Yuki: The Curious Desktop Robot
 
-<img src="https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1205/K151_stack_chan_main_pictures_01.webp" width="60%">
+> An expressive desktop robot that follows your face, wakes to gestures, explores the web around your interests, and starts conversations through animation, voice, movement, and light.
 
-Here are StackChan related open-source resources, including source code of the StackChan firmware, remote controller firmware, mobile app (iOS and Android), and server. 
+Yuki is an embodied AI companion built for OpenAI Build Week 2026 on the M5Stack StackChan K151. The project extends the open-source factory firmware in native C and C++ instead of replacing it with a simplified demonstration.
 
-Update of this repo could be a little late than the released firmware and mobile app. 
+## Project status
 
-----
+Implemented during the hackathon:
 
-<img src="https://cdn.shopify.com/s/files/1/0056/7689/2250/files/5a589623895f65487717894d9240f6b8.png" width="60%">
+- `self.robot.get_recent_interaction`, an MCP tool that reports recent head-touch gestures and shaking with event age and counts
+- `self.robot.set_led_pattern`, an MCP tool that controls all 12 body LEDs individually or as repeating patterns
+- A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 
-**StackChan is a super kawaii AI desktop robot co-created by M5Stack and the user community.** It uses the M5Stack **flagship IoT development kit [CoreS3](https://docs.m5stack.com/en/core/CoreS3)** as its main controller, powered by an ESP32-S3 SoC featuring a 240 MHz dual-core processor, with 16MB Flash and 8MB PSRAM onboard, and supporting Wi-Fi and BLE. The main unit also integrates a 2.0-inch capacitive touch display with a high-strength glass cover, a 0.3 MP camera, a proximity & ambient light sensor, a 9-axis IMU (accelerometer + gyroscope + magnetometer), a microSD card slot, a 1W speaker, dual microphones, and power/reset buttons. 
+In active development:
 
-The **robot body**, connected to the main unit, includes a USB-C interface for power and data, a 550 mAh battery, two feedback servos (360-degree continuous rotation on the horizontal axis and 90-degree movement on the vertical axis), two rows totaling 12 RGB LEDs, infrared transmitter and receiver, a three-zone touch panel, and a full-featured NFC module. 
+- Camera-based face following
+- Visual gesture wake-up
+- An original, fully animated Yuki facial-expression system replacing the stock expression library
+- Coordinated facial animation, head motion, voice, and LED expression
+- Interest-guided web exploration and proactive conversation while idle
 
-The **factory firmware** is feature-rich, including an AI Agent, lively and expressive animations, ESP-NOW wireless remote control, and online app downloads. It can connect to a mobile app for video viewing, remote avatar control, and more, and also supports online updates (OTA). The product also supports programming via Arduino, UiFlow2, and other methods, and can connect to various expansion units in the M5Stack ecosystem, making it easy to implement a wide range of custom functions. 
+The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
 
-> ⚠️ Do not forcibly rotate any movable parts connected to the motors by hand when you are unsure whether the motors are powered and under control, as this may cause hardware damage. 
+## Hardware
 
-- Purchase link: [M5Stack Official Store](https://shop.m5stack.com/products/stackchan-kawaii-co-created-open-source-ai-desktop-robot) | [淘宝 Taobao](https://item.taobao.com/item.htm?id=1042238294510)
+- M5Stack StackChan K151
+- M5Stack CoreS3 with ESP32-S3, 16 MB flash, and 8 MB PSRAM
+- 2-inch touch display and 0.3 MP camera
+- Two microphones and a speaker
+- Two feedback servos for pan and tilt
+- 12 individually addressable RGB LEDs
+- Head-touch sensor and 9-axis IMU
 
-- Product document page: [English](https://docs.m5stack.com/en/StackChan) | [日本語](https://docs.m5stack.com/ja/StackChan) | [中文](https://docs.m5stack.com/zh_CN/StackChan)
+## Build
 
-- Board support package: https://github.com/m5stack/StackChan-BSP
+The firmware requires ESP-IDF 5.5.4.
 
-Thank you to the contributors of the StackChan community, especially: 
+```sh
+cd firmware
+python3 ./fetch_repos.py
+. "$HOME/esp/esp-idf/export.sh"
+idf.py set-target esp32s3
+idf.py build
+```
 
-| ![](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1205/avatar_stack_chan.jpg) | ![](https://m5stack-doc.oss-cn-shenzhen.aliyuncs.com/1205/avatar_takao.jpg) |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [@stack_chan](https://x.com/stack_chan)                                          | [@mongonta555](https://x.com/mongonta555)                                   |
-| Shinya Ishikawa                                                                  | Takao Akaki                                                                 |
+## Flash
+
+Use a full `idf.py flash`, not `app-flash`. The factory partition layout has dual OTA slots and no factory app slot, so an app-only flash may write an image that the device does not boot.
+
+```sh
+cd firmware
+. "$HOME/esp/esp-idf/export.sh"
+idf.py -p /dev/cu.usbmodem1101 flash
+```
+
+> **Hardware warning:** Do not run `erase-flash` or `nvs_flash_erase()` on a configured StackChan. NVS contains device-specific servo calibration and identity values. The tilt servo must remain within its safe physical range.
+
+## How Codex contributed
+
+OpenAI Codex was used throughout the project to investigate the unfamiliar firmware, distinguish between multiple StackChan software lineages, trace events across FreeRTOS tasks, understand the flash and OTA layout, protect hardware-specific calibration, design the MCP interface, implement and review C++ changes, diagnose build issues, and verify the resulting firmware.
+
+Codex accelerated source analysis and implementation. Product decisions, including Yuki's interaction model, character direction, autonomous behavior, privacy boundaries, and coordinated expression system, were made by the project author.
+
+See [DEVPOST.md](DEVPOST.md) for the full project story.
+
+## Hackathon work and upstream work
+
+This repository is based on [M5Stack/StackChan](https://github.com/m5stack/StackChan). The upstream source predates the hackathon. New work is maintained in commits dated during the OpenAI Build Week submission period so judges can distinguish the Yuki implementation from the original firmware.
+
+The original StackChan firmware is Copyright (c) 2026 M5Stack Technology CO LTD and distributed under the MIT License. See [LICENSE](LICENSE). StackChan is a product of M5Stack; Yuki is an independent hackathon project built on its open-source firmware.
