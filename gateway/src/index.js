@@ -233,7 +233,7 @@ function readConfig(env) {
   }
   return {
     digitalOceanToken: env.DIGITALOCEAN_TOKEN,
-    chatModel: env.YUKI_DO_CHAT_MODEL ?? 'llama3.3-70b-instruct',
+    chatModel: env.YUKI_DO_CHAT_MODEL ?? 'openai-gpt-oss-20b',
     ttsModel: env.YUKI_DO_TTS_MODEL ?? 'qwen3-tts-voicedesign',
     ttsVoice: env.YUKI_TTS_VOICE ?? 'alloy',
     sttBaseUrl: env.YUKI_STT_BASE_URL?.replace(/\/$/, ''),
