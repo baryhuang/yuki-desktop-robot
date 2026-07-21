@@ -41,7 +41,7 @@ The runtime language-model backend is intentionally replaceable. Yuki's percepti
 
 ## Voice Gateway
 
-The firmware connects only to Yuki Gateway, not to Xiaozhi. The gateway receives the device's Opus stream, transcribes it with a private Whisper sidecar, sends conversation requests to DigitalOcean Serverless Inference, and converts its TTS output into the Opus stream expected by the device. The bundled Compose deployment keeps Whisper private and exposes only the gateway. See [`gateway/README.md`](gateway/README.md).
+The firmware connects only to Yuki Gateway, not to Xiaozhi. The complete server side runs on DigitalOcean: a Droplet hosts the WSS gateway and private Whisper sidecar, while DigitalOcean Serverless Inference handles chat and TTS. The device sends Opus to the gateway and receives transcript, state, and synthesized Opus responses over the same connection. See [`gateway/README.md`](gateway/README.md).
 
 Before building a runnable image, set the gateway URL in the generated workspace. Do not put cloud credentials in firmware.
 

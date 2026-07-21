@@ -15,7 +15,7 @@ whisper_model: Optional[WhisperModel] = None
 def load_model() -> None:
     global whisper_model
     whisper_model = WhisperModel(
-        os.getenv("WHISPER_MODEL", "base"),
+        os.getenv("WHISPER_MODEL", "small"),
         device="cpu",
         compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
     )

@@ -8,13 +8,13 @@ services:
       whisper:
         condition: service_healthy
     ports:
-      - "8787:8787"
+      - "127.0.0.1:8787:8787"
     restart: unless-stopped
 
   whisper:
     build: ./stt
     environment:
-      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
       WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
     expose:
       - "8000"
