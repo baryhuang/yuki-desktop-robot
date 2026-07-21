@@ -13,7 +13,7 @@ The repository root contains only Yuki's authored code and the changes that inte
 - [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
 - [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - modifications that turn the fetched runtime into a Yuki WebSocket client; no Xiaozhi cloud service is used
-- [`gateway/`](gateway/) - self-hosted voice gateway: DigitalOcean Serverless Inference chat and TTS, plus a pluggable OpenAI-compatible STT adapter
+- [`gateway/`](gateway/) - self-hosted voice gateway: private Whisper STT plus DigitalOcean Serverless Inference chat and TTS
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status
@@ -41,7 +41,7 @@ The runtime language-model backend is intentionally replaceable. Yuki's percepti
 
 ## Voice Gateway
 
-The firmware connects only to Yuki Gateway, not to Xiaozhi. The gateway holds the DigitalOcean token, sends conversation requests to DigitalOcean Serverless Inference, and converts its TTS output into the Opus stream expected by the device. DigitalOcean currently has no documented transcription endpoint, so the gateway requires a separate OpenAI-compatible STT endpoint for microphone input. See [`gateway/README.md`](gateway/README.md).
+The firmware connects only to Yuki Gateway, not to Xiaozhi. The gateway receives the device's Opus stream, transcribes it with a private Whisper sidecar, sends conversation requests to DigitalOcean Serverless Inference, and converts its TTS output into the Opus stream expected by the device. The bundled Compose deployment keeps Whisper private and exposes only the gateway. See [`gateway/README.md`](gateway/README.md).
 
 Before building a runnable image, set the gateway URL in the generated workspace. Do not put cloud credentials in firmware.
 

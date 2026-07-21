@@ -1,0 +1,27 @@
+services:
+  gateway:
+    build: .
+    env_file: ${YUKI_ENV_FILE:-.env}
+    environment:
+      YUKI_STT_BASE_URL: ${YUKI_STT_BASE_URL:-http://whisper:8000/v1}
+    depends_on:
+      whisper:
+        condition: service_healthy
+    ports:
+      - "8787:8787"
+    restart: unless-stopped
+
+  whisper:
+    build: ./stt
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    restart: unless-stopped

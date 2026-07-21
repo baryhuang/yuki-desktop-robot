@@ -50,16 +50,20 @@ export async function synthesizeSpeech(config, text) {
 }
 
 export async function transcribeSpeech(config, wav) {
-  if (!config.sttBaseUrl || !config.sttApiKey || !config.sttModel) {
+  if (!config.sttBaseUrl || !config.sttModel) {
     throw new Error('Yuki speech-to-text is not configured');
   }
 
   const form = new FormData();
   form.append('model', config.sttModel);
   form.append('file', new Blob([wav], {type: 'audio/wav'}), 'yuki-input.wav');
+  const headers = {};
+  if (config.sttApiKey) {
+    headers.authorization = `Bearer ${config.sttApiKey}`;
+  }
   const response = await fetchWithTimeout(`${config.sttBaseUrl}/audio/transcriptions`, {
     method: 'POST',
-    headers: {authorization: `Bearer ${config.sttApiKey}`},
+    headers,
     body: form,
   });
   const payload = await readJson(response, 'speech-to-text');

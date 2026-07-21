@@ -1,40 +1,39 @@
 # Yuki Gateway
 
-Yuki Gateway replaces Xiaozhi's cloud protocol. The StackChan speaks a small
-WebSocket protocol over the local network; this service keeps the cloud keys on
-the server, sends the conversation to DigitalOcean Serverless Inference, and
-returns DigitalOcean TTS as paced Opus frames that the firmware already knows
-how to play.
+Yuki Gateway mirrors Xiaozhi's server-side architecture. The StackChan sends
+16 kHz Opus frames and listening boundaries over WebSocket. The gateway sends
+each finished utterance to its private Whisper service, returns the transcript
+to the device as `{"type":"stt"}`, asks DigitalOcean Serverless Inference for
+the reply, and returns DigitalOcean TTS as paced Opus frames.
 
 ## Why there is a second speech credential
 
 DigitalOcean Serverless Inference supplies the chat and TTS endpoints used here.
-It does not expose a documented speech-to-text endpoint. The gateway therefore
-uses an OpenAI-compatible transcription endpoint for microphone input. This is
-an explicit integration boundary, not a hidden Xiaozhi dependency.
+It does not expose a documented speech-to-text endpoint. `compose.yaml` instead
+starts a private faster-whisper HTTP service behind the gateway. This is an
+explicit local component, not a hidden Xiaozhi dependency or a second cloud key.
 
 ## Run locally
 
 ```sh
 cd gateway
 cp .env.example .env
-# Set DIGITALOCEAN_TOKEN and the three YUKI_STT_* values in .env.
-set -a; source .env; set +a
-npm install
-npm start
+# Set DIGITALOCEAN_TOKEN in .env.
+docker compose up --build
 ```
 
-The gateway listens on `ws://<your-mac-lan-ip>:8787`. For a public deployment,
-run it behind TLS and configure the firmware with `wss://...`.
+The gateway listens on `ws://<your-mac-lan-ip>:8787`; Whisper stays private on
+the Compose network. For a public deployment, terminate TLS in front of the
+gateway and configure the firmware with `wss://...`.
 
 ## Deploy with Docker
 
 ```sh
 cd gateway
-docker build -t yuki-gateway .
-docker run --env-file .env -p 8787:8787 yuki-gateway
+docker compose up --build -d
 ```
 
-Never put `DIGITALOCEAN_TOKEN` or `YUKI_STT_API_KEY` in firmware, source files,
-screenshots, or Git. The firmware only receives the gateway URL and optional
-gateway access token.
+The Whisper model downloads when the service starts for the first time. Use a
+Droplet with at least 4 GB memory for the `base` model. Never put
+`DIGITALOCEAN_TOKEN` in firmware, source files, screenshots, or Git. The
+firmware only receives the gateway URL and optional gateway access token.
