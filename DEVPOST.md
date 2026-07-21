@@ -29,7 +29,9 @@ The face is rendered as aligned LVGL layers over a character base: brows, eyelid
 
 The agent receives physical abilities through Model Context Protocol tools. Touch and IMU events originate in independent FreeRTOS tasks, so I added a lock-free interaction record containing event age and count rather than exposing transient booleans. LED input is parsed into validated patterns for 12 independently addressable pixels. Camera, servo, reminder, interaction, and curiosity tools expose concrete device state to the conversation agent.
 
-Curiosity is a separate on-device scheduler, not a hard-coded backend feature. It stores interests and timing preferences, checks conversation state and recent visual presence, then asks the configured Yuki Gateway to research and choose one item. The complete server side runs on DigitalOcean: a Droplet hosts the WSS gateway and private Whisper STT, then DigitalOcean Serverless Inference handles chat and TTS. This keeps Yuki’s body, senses, timing, and tool interface on the robot while allowing the language model and search service to be replaced.
+Curiosity is a separate on-device scheduler, not a hard-coded backend feature. It stores interests and timing preferences, checks conversation state and recent visual presence, then asks the configured Yuki Gateway to research and choose one item. A CPU-only DigitalOcean Droplet hosts the authenticated WSS gateway. For conversation, the gateway decodes each 60 ms Opus packet and streams 16 kHz PCM to Vertex AI Gemini Live, then streams native 24 kHz audio back as Opus. This keeps Yuki’s body, senses, timing, and tool interface on the robot while avoiding a serial STT, chat, and TTS pipeline.
+
+The same Live session accepts proactive curiosity as an ordered text turn and can ground it with Google Search. Camera tool calls use a separate authenticated `/vision` route because the firmware captures and uploads a JPEG only when the model asks to see; continuous face tracking never sends camera frames to the cloud.
 
 ## How I used Codex and GPT-5.6
 
@@ -81,6 +83,12 @@ Microphone and servo coordination required another state-machine fix. Physical h
 
 The conversation model initially claimed it had no camera even though the hardware and MCP implementation existed. The fix was not to pretend in a system prompt. I verified the MCP initialization handshake, tool enumeration, descriptions, and calls over the live protocol, then described each capability with concrete ranges and usage rules. The agent can now discover what the robot can actually sense and do.
 
+### Replacing a correct but unusably slow voice pipeline
+
+The first replacement backend was functionally complete: private faster-whisper on a four-vCPU DigitalOcean Droplet, DigitalOcean Serverless Inference chat, and DigitalOcean TTS. An end-to-end protocol test correctly transcribed Opus audio, generated a reply, and returned playable Opus frames. It was still a product failure. A 2.3 second utterance took about 9 seconds to transcribe; chat added about 1.4 seconds and TTS added another 3–4 seconds. Yuki waited roughly 14 seconds before speaking.
+
+Optimizing the CPU model would not fix the architecture. The gateway waited for the utterance, STT waited for the complete audio, chat waited for STT, and TTS waited for chat. I replaced that path with a Gemini Live bridge that forwards every 60 ms input frame immediately and returns native audio as it arrives. The same bridge dynamically enumerates the robot’s MCP tools and maps Gemini function calls back to physical `tools/call` requests. The old DigitalOcean/Whisper path remains an explicit rollback profile, not the production interaction design.
+
 ## What I learned
 
 Embodiment is a scheduling problem as much as a model problem. Presence comes from keeping perception active, choosing which behavior owns the body at a given moment, and making voice, gaze, expression, light, and motion agree within a few hundred milliseconds.
@@ -101,6 +109,7 @@ Finally, proactive behavior requires restraint. Yuki’s curiosity is gated by r
 - LVGL
 - ESP-DL
 - Model Context Protocol (MCP)
+- Vertex AI Gemini Live
 - DigitalOcean Serverless Inference
 - ESP32-S3
 - M5Stack StackChan K151

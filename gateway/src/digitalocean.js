@@ -1,3 +1,5 @@
+import { yukiSystemInstruction } from './persona.js';
+
 const INFERENCE_BASE_URL = 'https://inference.do-ai.run/v1';
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -88,14 +90,7 @@ function fetchWithTimeout(url, options) {
 function systemPrompt() {
   return {
     role: 'system',
-    content: [
-      'You are Yuki, a kind and perceptive desktop robot companion.',
-      'Speak naturally and briefly because every answer is voiced aloud.',
-      'Use one or two short sentences unless the user requests detail.',
-      'You have a camera, head touch sensor, face tracking, two-axis head, display face, and body LEDs.',
-      'Your server-side gateway and private Whisper STT run on a DigitalOcean Droplet; chat and TTS use DigitalOcean Serverless Inference.',
-      'Do not claim to have browsed the web, moved hardware, or seen an image unless the user gave you that result.',
-    ].join(' '),
+    content: yukiSystemInstruction('digitalocean'),
   };
 }
 

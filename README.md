@@ -13,7 +13,7 @@ The repository root contains only Yuki's authored code and the changes that inte
 - [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
 - [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - modifications that turn the fetched runtime into a Yuki WebSocket client; no Xiaozhi cloud service is used
-- [`gateway/`](gateway/) - self-hosted voice gateway: private Whisper STT plus DigitalOcean Serverless Inference chat and TTS
+- [`gateway/`](gateway/) - DigitalOcean-hosted realtime gateway for Vertex AI Gemini Live, with the previous private Whisper pipeline retained only as fallback
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status
@@ -29,19 +29,22 @@ Implemented during the hackathon:
 - Speech-state coordination that synchronizes Yuki's mouth, safety-aware head gestures, and two-color LED pulses while preserving face-tracking priority
 - Configurable interest-guided curiosity that autonomously asks the active backend to explore the web and start a short conversation, gated by idle state and recent face presence
 - MCP tools to configure curiosity, inspect its settings, and trigger an immediate demo without tying the firmware to one LLM provider
-- A self-hosted WebSocket voice gateway that replaces Xiaozhi cloud traffic with DigitalOcean Serverless Inference for chat and TTS
+- A self-hosted WebSocket gateway that replaces Xiaozhi cloud traffic and streams audio bidirectionally through Vertex AI Gemini Live
+- Dynamic MCP discovery that exposes the robot's actual camera, sensors, LEDs, and motion tools to the live model
+- An authenticated Vertex AI vision endpoint for camera tool calls, while continuous face tracking stays local on the ESP32
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 - A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
 In active development:
 
 - Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
+- Live validation of the Gemini audio backend after GCP project credentials are provisioned
 
 The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
 
 ## Voice Gateway
 
-The firmware connects only to Yuki Gateway, not to Xiaozhi. The complete server side runs on DigitalOcean: a Droplet hosts the WSS gateway and private Whisper sidecar, while DigitalOcean Serverless Inference handles chat and TTS. The device sends Opus to the gateway and receives transcript, state, and synthesized Opus responses over the same connection. See [`gateway/README.md`](gateway/README.md).
+The firmware connects only to Yuki Gateway, not to Xiaozhi. A CPU-only DigitalOcean Droplet hosts the authenticated WSS gateway and performs lightweight Opus/PCM conversion. The gateway streams each audio frame to Vertex AI Gemini Live and streams native audio responses back without waiting for separate STT, chat, and TTS requests. See [`gateway/README.md`](gateway/README.md).
 
 Before building a runnable image, set the gateway URL in the generated workspace. Do not put cloud credentials in firmware.
 

@@ -1,6 +1,6 @@
 {
   "name": "yuki-gateway",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,6 +11,7 @@
     "node": ">=22"
   },
   "dependencies": {
+    "@google/genai": "^2.13.0",
     "opusscript": "^0.1.1",
     "ws": "^8.18.3"
   }
