@@ -87,7 +87,7 @@ The conversation model initially claimed it had no camera even though the hardwa
 
 The first replacement backend was functionally complete: private faster-whisper on a four-vCPU DigitalOcean Droplet, DigitalOcean Serverless Inference chat, and DigitalOcean TTS. An end-to-end protocol test correctly transcribed Opus audio, generated a reply, and returned playable Opus frames. It was still a product failure. A 2.3 second utterance took about 9 seconds to transcribe; chat added about 1.4 seconds and TTS added another 3–4 seconds. Yuki waited roughly 14 seconds before speaking.
 
-Optimizing the CPU model would not fix the architecture. The gateway waited for the utterance, STT waited for the complete audio, chat waited for STT, and TTS waited for chat. I replaced that path with a Gemini Live bridge that forwards every 60 ms input frame immediately and returns native audio as it arrives. The same bridge dynamically enumerates the robot’s MCP tools and maps Gemini function calls back to physical `tools/call` requests. The old DigitalOcean/Whisper path remains an explicit rollback profile, not the production interaction design.
+Optimizing the CPU model would not fix the architecture. The gateway waited for the utterance, STT waited for the complete audio, chat waited for STT, and TTS waited for chat. I replaced and removed that path. The Gemini Live bridge forwards every 60 ms input frame immediately and returns native audio as it arrives. The same bridge dynamically enumerates the robot’s MCP tools and maps Gemini function calls back to physical `tools/call` requests.
 
 ## What I learned
 
@@ -110,7 +110,7 @@ Finally, proactive behavior requires restraint. Yuki’s curiosity is gated by r
 - ESP-DL
 - Model Context Protocol (MCP)
 - Vertex AI Gemini Live
-- DigitalOcean Serverless Inference
+- DigitalOcean
 - ESP32-S3
 - M5Stack StackChan K151
 - CMake

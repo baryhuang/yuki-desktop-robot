@@ -13,7 +13,7 @@ The repository root contains only Yuki's authored code and the changes that inte
 - [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
 - [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - modifications that turn the fetched runtime into a Yuki WebSocket client; no Xiaozhi cloud service is used
-- [`gateway/`](gateway/) - DigitalOcean-hosted realtime gateway for Vertex AI Gemini Live, with the previous private Whisper pipeline retained only as fallback
+- [`gateway/`](gateway/) - DigitalOcean-hosted realtime gateway for Vertex AI Gemini Live
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status

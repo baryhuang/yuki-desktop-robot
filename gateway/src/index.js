@@ -7,22 +7,16 @@ import { DeviceMcpClient } from './mcp-client.js';
 import {
   CHANNELS,
   FRAME_DURATION_MS,
-  INPUT_SAMPLE_RATE,
   OUTPUT_SAMPLE_RATE,
   createInputDecoder,
-  createOutputEncoder,
   opusPacketToPcm,
   parseIncomingOpusFrame,
-  pcmToOpusPackets,
-  pcmToWav,
   serializeOutgoingOpusFrame,
-  wavToOutputPcm,
 } from './audio.js';
-import { createReply, synthesizeSpeech, transcribeSpeech } from './digitalocean.js';
 import {createHttpHandler, VertexVision} from './vision.js';
 
 const config = readConfig(process.env);
-const vision = config.voiceBackend === 'gemini-live' ? new VertexVision(config) : null;
+const vision = new VertexVision(config);
 const httpServer = createServer(createHttpHandler({gatewayToken: config.gatewayToken, vision}));
 const server = new WebSocketServer({server: httpServer});
 httpServer.listen(config.port, '0.0.0.0');
@@ -59,11 +53,7 @@ function createSession(socket, headers) {
     deviceId: headers['device-id'] ?? 'unknown-device',
     version: 0,
     decoder: createInputDecoder(),
-    encoder: createOutputEncoder(),
-    packets: [],
-    history: [],
     listening: false,
-    turnInFlight: false,
     generation: 0,
     closed: false,
     liveBridge: null,
@@ -72,7 +62,7 @@ function createSession(socket, headers) {
     liveInputQueue: [],
   };
   session.mcp = new DeviceMcpClient((message) => sendJson(session, message), {
-    visionUrl: config.voiceBackend === 'gemini-live' ? config.visionUrl : undefined,
+    visionUrl: config.visionUrl,
     visionToken: config.gatewayToken,
   });
   return session;
@@ -80,19 +70,15 @@ function createSession(socket, headers) {
 
 async function handleMessage(session, data, isBinary) {
   if (isBinary) {
-    if (!session.listening || session.turnInFlight) {
+    if (!session.listening) {
       return;
     }
     const packet = parseIncomingOpusFrame(data, session.version);
-    if (config.voiceBackend === 'gemini-live') {
-      const pcm = opusPacketToPcm(session.decoder, packet);
-      if (session.liveBridge?.listening) {
-        session.liveBridge.sendInputPcm(pcm);
-      } else if (session.liveInputQueue.length < 200) {
-        session.liveInputQueue.push(pcm);
-      }
-    } else {
-      session.packets.push(packet);
+    const pcm = opusPacketToPcm(session.decoder, packet);
+    if (session.liveBridge?.listening) {
+      session.liveBridge.sendInputPcm(pcm);
+    } else if (session.liveInputQueue.length < 200) {
+      session.liveInputQueue.push(pcm);
     }
     return;
   }
@@ -136,49 +122,33 @@ function handleHello(session, message) {
     },
   });
   console.info(`[${session.id}] connected ${session.deviceId}, protocol v${session.version}`);
-  if (config.voiceBackend === 'gemini-live') {
-    prepareGeminiLive(session).catch((error) => handleSessionError(session, error));
-  }
+  prepareGeminiLive(session).catch((error) => handleSessionError(session, error));
 }
 
 async function handleListening(session, message) {
   if (message.state === 'detect' && isProactivePrompt(message.text)) {
     session.generation++;
-    if (config.voiceBackend === 'gemini-live') {
-      const bridge = await prepareGeminiLive(session);
-      await bridge.sendText(message.text.trim());
-    } else {
-      await runTextTurn(session, message.text.trim());
-    }
+    const bridge = await prepareGeminiLive(session);
+    await bridge.sendText(message.text.trim());
     return;
   }
 
   if (message.state === 'start') {
     session.generation++;
     session.decoder = createInputDecoder();
-    session.packets = [];
     session.liveInputQueue = [];
     session.listening = true;
-    if (config.voiceBackend === 'gemini-live') {
-      const generation = session.generation;
-      session.liveTurnPromise = beginGeminiTurn(session, generation);
-      await session.liveTurnPromise;
-    }
+    const generation = session.generation;
+    session.liveTurnPromise = beginGeminiTurn(session, generation);
+    await session.liveTurnPromise;
     return;
   }
 
-  if (message.state === 'stop' && session.listening && !session.turnInFlight) {
+  if (message.state === 'stop' && session.listening) {
     session.listening = false;
-    if (config.voiceBackend === 'gemini-live') {
-      await session.liveTurnPromise;
-      session.liveBridge?.stopListening();
-      session.liveInputQueue = [];
-      return;
-    }
-    if (session.packets.length === 0) {
-      return;
-    }
-    await runTurn(session);
+    await session.liveTurnPromise;
+    session.liveBridge?.stopListening();
+    session.liveInputQueue = [];
   }
 }
 
@@ -234,93 +204,6 @@ function prepareGeminiLive(session) {
   return session.liveReady;
 }
 
-async function runTurn(session) {
-  session.turnInFlight = true;
-  const generation = session.generation;
-  try {
-    const pcm = Buffer.concat(session.packets.map((packet) => opusPacketToPcm(session.decoder, packet)));
-    session.packets = [];
-    const transcript = await transcribeSpeech(config, pcmToWav(pcm, INPUT_SAMPLE_RATE));
-    if (!isCurrent(session, generation)) {
-      return;
-    }
-
-    sendJson(session, {type: 'stt', text: transcript});
-    await completeDigitalOceanTurn(session, generation, transcript);
-  } finally {
-    session.turnInFlight = false;
-  }
-}
-
-async function runTextTurn(session, text) {
-  if (session.turnInFlight) {
-    return;
-  }
-  session.turnInFlight = true;
-  const generation = session.generation;
-  try {
-    await completeDigitalOceanTurn(session, generation, text);
-  } finally {
-    session.turnInFlight = false;
-  }
-}
-
-async function completeDigitalOceanTurn(session, generation, prompt) {
-  appendHistory(session, 'user', prompt);
-  const reply = await createReply(config, session.history);
-  if (!isCurrent(session, generation)) {
-    return;
-  }
-
-  appendHistory(session, 'assistant', reply);
-  const wav = await synthesizeSpeech(config, reply);
-  if (!isCurrent(session, generation)) {
-    return;
-  }
-
-  await streamSpeech(session, generation, reply, wav);
-}
-
-async function streamSpeech(session, generation, text, wav) {
-  const pcm = await wavToOutputPcm(wav);
-  session.encoder = createOutputEncoder();
-  const packets = pcmToOpusPackets(session.encoder, pcm);
-  if (!isCurrent(session, generation)) {
-    return;
-  }
-
-  sendJson(session, {type: 'llm', emotion: emotionFor(text)});
-  sendJson(session, {type: 'tts', state: 'start'});
-  sendJson(session, {type: 'tts', state: 'sentence_start', text});
-
-  for (const packet of packets) {
-    if (!isCurrent(session, generation)) {
-      return;
-    }
-    session.socket.send(serializeOutgoingOpusFrame(packet, session.version), {binary: true});
-    await sleep(FRAME_DURATION_MS - 5);
-  }
-
-  if (isCurrent(session, generation)) {
-    sendJson(session, {type: 'tts', state: 'stop'});
-  }
-}
-
-function appendHistory(session, role, content) {
-  session.history.push({role, content});
-  if (session.history.length > 12) {
-    session.history.splice(0, session.history.length - 12);
-  }
-}
-
-function emotionFor(text) {
-  const lower = text.toLowerCase();
-  if (/(sorry|sad|unfortunately|miss you)/.test(lower)) return 'sad';
-  if (/(wow|amazing|great|wonderful|love|happy|yay)/.test(lower)) return 'happy';
-  if (/(what\?|really\?|surprised)/.test(lower)) return 'surprised';
-  return 'neutral';
-}
-
 function handleSessionError(session, error) {
   console.error(`[${session.id}] ${error.message}`);
   if (!session.closed) {
@@ -331,7 +214,6 @@ function handleSessionError(session, error) {
       emotion: 'sad',
     });
   }
-  session.turnInFlight = false;
 }
 
 function sendJson(session, message) {
@@ -351,22 +233,7 @@ function isCurrent(session, generation) {
 }
 
 function readConfig(env) {
-  const voiceBackend = env.YUKI_VOICE_BACKEND ?? 'digitalocean';
-  if (!['digitalocean', 'gemini-live'].includes(voiceBackend)) {
-    throw new Error(`Unsupported YUKI_VOICE_BACKEND: ${voiceBackend}`);
-  }
-  if (voiceBackend === 'digitalocean' && !env.DIGITALOCEAN_TOKEN) {
-    throw new Error('DIGITALOCEAN_TOKEN must be set');
-  }
   return {
-    voiceBackend,
-    digitalOceanToken: env.DIGITALOCEAN_TOKEN,
-    chatModel: env.YUKI_DO_CHAT_MODEL ?? 'openai-gpt-oss-20b',
-    ttsModel: env.YUKI_DO_TTS_MODEL ?? 'qwen3-tts-voicedesign',
-    ttsVoice: env.YUKI_TTS_VOICE ?? 'alloy',
-    sttBaseUrl: env.YUKI_STT_BASE_URL?.replace(/\/$/, ''),
-    sttApiKey: env.YUKI_STT_API_KEY,
-    sttModel: env.YUKI_STT_MODEL,
     gatewayToken: env.YUKI_GATEWAY_TOKEN,
     googleCloudProject: env.GOOGLE_CLOUD_PROJECT,
     googleCloudLocation: env.GOOGLE_CLOUD_LOCATION ?? 'us-west1',
@@ -377,8 +244,4 @@ function readConfig(env) {
     visionUrl: env.YUKI_VISION_URL ?? (env.YUKI_GATEWAY_HOST ? `https://${env.YUKI_GATEWAY_HOST}/vision` : undefined),
     port: Number.parseInt(env.PORT ?? '8787', 10),
   };
-}
-
-function sleep(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

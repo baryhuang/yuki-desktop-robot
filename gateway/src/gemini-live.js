@@ -172,7 +172,7 @@ export class GeminiLiveBridge {
       model: this.config.geminiModel,
       config: {
         responseModalities: [Modality.AUDIO],
-        systemInstruction: yukiSystemInstruction('gemini-live'),
+        systemInstruction: yukiSystemInstruction(),
         speechConfig: {
           voiceConfig: {prebuiltVoiceConfig: {voiceName: this.config.geminiVoice}},
         },

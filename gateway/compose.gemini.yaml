@@ -1,6 +1,0 @@
-services:
-  gateway:
-    environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp-service-account.json
-    volumes:
-      - ${GOOGLE_APPLICATION_CREDENTIALS_HOST:?Set the host path to the GCP service-account JSON}:/run/secrets/gcp-service-account.json:ro

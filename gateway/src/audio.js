@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import OpusScript from 'opusscript';
 
 export const INPUT_SAMPLE_RATE = 16000;
@@ -16,48 +15,6 @@ export function createOutputEncoder() {
 
 export function opusPacketToPcm(decoder, packet) {
   return Buffer.from(decoder.decode(packet, INPUT_SAMPLE_RATE * FRAME_DURATION_MS / 1000));
-}
-
-export function pcmToWav(pcm, sampleRate) {
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
-  header.writeUInt32LE(36 + pcm.length, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
-  header.writeUInt32LE(16, 16);
-  header.writeUInt16LE(1, 20);
-  header.writeUInt16LE(CHANNELS, 22);
-  header.writeUInt32LE(sampleRate, 24);
-  header.writeUInt32LE(sampleRate * CHANNELS * 2, 28);
-  header.writeUInt16LE(CHANNELS * 2, 32);
-  header.writeUInt16LE(16, 34);
-  header.write('data', 36);
-  header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
-}
-
-export async function wavToOutputPcm(wav) {
-  return runFfmpeg(wav, [
-    '-i', 'pipe:0',
-    '-f', 's16le',
-    '-acodec', 'pcm_s16le',
-    '-ac', '1',
-    '-ar', String(OUTPUT_SAMPLE_RATE),
-    'pipe:1',
-  ]);
-}
-
-export function pcmToOpusPackets(encoder, pcm) {
-  const frameBytes = OUTPUT_SAMPLE_RATE * FRAME_DURATION_MS / 1000 * 2;
-  const packets = [];
-
-  for (let offset = 0; offset < pcm.length; offset += frameBytes) {
-    const frame = Buffer.alloc(frameBytes);
-    pcm.copy(frame, 0, offset, Math.min(offset + frameBytes, pcm.length));
-    packets.push(Buffer.from(encoder.encode(frame, OUTPUT_SAMPLE_RATE * FRAME_DURATION_MS / 1000)));
-  }
-
-  return packets;
 }
 
 export function parseIncomingOpusFrame(data, version) {
@@ -110,25 +67,4 @@ export function serializeOutgoingOpusFrame(packet, version) {
   }
 
   return packet;
-}
-
-function runFfmpeg(input, args) {
-  return new Promise((resolve, reject) => {
-    const ffmpeg = spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...args]);
-    const stdout = [];
-    const stderr = [];
-
-    ffmpeg.stdout.on('data', (chunk) => stdout.push(chunk));
-    ffmpeg.stderr.on('data', (chunk) => stderr.push(chunk));
-    ffmpeg.on('error', (error) => reject(new Error(`Unable to start ffmpeg: ${error.message}`)));
-    ffmpeg.on('close', (code) => {
-      if (code === 0) {
-        resolve(Buffer.concat(stdout));
-      } else {
-        reject(new Error(`ffmpeg failed (${code}): ${Buffer.concat(stderr).toString().trim()}`));
-      }
-    });
-
-    ffmpeg.stdin.end(input);
-  });
 }
