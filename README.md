@@ -14,6 +14,7 @@ The repository root contains only Yuki's authored code and the changes that inte
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
 - [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - Yuki's changes to the official Xiaozhi runtime, including activation, audio, MCP, and automatic wake behavior
 - [`gateway/`](gateway/) - an experimental Gemini Live gateway retained for later work; it is not connected to the current firmware
+- [`docs/slides/`](docs/slides/) - the five-page hackathon deck as 2560 x 1440 PNGs plus an editable PowerPoint file
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status
