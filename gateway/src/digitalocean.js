@@ -9,7 +9,7 @@ export async function createReply(config, history) {
       model: config.chatModel,
       messages: [systemPrompt(), ...history],
       temperature: 0.7,
-      max_completion_tokens: 180,
+      max_completion_tokens: 512,
     }),
   });
   const payload = await readJson(response, 'DigitalOcean chat');
