@@ -1,5 +1,7 @@
 # Yuki Gateway
 
+> Experimental future work. The current Yuki firmware uses the official Xiaozhi service and does not connect to this gateway.
+
 Yuki Gateway terminates the StackChan's authenticated Xiaozhi-compatible WSS
 connection on a CPU-only DigitalOcean Droplet. It decodes each
 60 ms Opus input packet immediately, streams the resulting 16 kHz PCM to Vertex
