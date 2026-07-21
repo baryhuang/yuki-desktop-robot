@@ -628,7 +628,7 @@ index 7bc917b..874b137 100644
 
  #endif // I2C_DEVICE_H
 diff --git a/main/mcp_server.cc b/main/mcp_server.cc
-index 7cd7ba0..ba85a12 100644
+index 7cd7ba0..758d9d4 100644
 --- a/main/mcp_server.cc
 +++ b/main/mcp_server.cc
 @@ -100,7 +100,10 @@ void McpServer::AddCommonTools() {
@@ -686,15 +686,28 @@ index 7cd7ba0..ba85a12 100644
          auto tool_arguments = cJSON_GetObjectItem(params, "arguments");
          if (tool_arguments != nullptr && !cJSON_IsObject(tool_arguments)) {
              ESP_LOGE(TAG, "tools/call: Invalid arguments");
-@@ -455,6 +440,7 @@ void McpServer::ReplyError(int id, const std::string& message) {
+@@ -453,8 +438,11 @@ void McpServer::ReplyError(int id, const std::string& message) {
+ }
+
  void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_only_tools) {
-     const int max_payload_size = 8000;
+-    const int max_payload_size = 8000;
++    // Leave enough internal SRAM for MQTT/TLS to encrypt the response. The
++    // Xiaozhi MCP client follows nextCursor, so a smaller page loses no tools.
++    constexpr size_t kMaxPayloadSize = 3000;
      std::string json = "{\"tools\":[";
 +    size_t listed_count = 0;
      
      bool found_cursor = cursor.empty();
      auto it = tools_.begin();
-@@ -485,6 +471,7 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+@@ -478,13 +466,14 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+         
+         // 添加tool前检查大小
+         std::string tool_json = (*it)->to_json() + ",";
+-        if (json.length() + tool_json.length() + 30 > max_payload_size) {
++        if (json.length() + tool_json.length() + 30 > kMaxPayloadSize) {
+             // 如果添加这个tool会超出大小限制，设置next_cursor并退出循环
+             next_cursor = (*it)->name();
+             break;
          }
          
          json += tool_json;
@@ -702,7 +715,7 @@ index 7cd7ba0..ba85a12 100644
          ++it;
      }
      
-@@ -505,6 +492,8 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+@@ -505,6 +494,8 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
          json += "],\"nextCursor\":\"" + next_cursor + "\"}";
      }
      

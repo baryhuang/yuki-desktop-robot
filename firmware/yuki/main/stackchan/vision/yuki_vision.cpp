@@ -31,6 +31,7 @@ constexpr int kMaxFrameBytes           = 320 * 240 * 3;
 constexpr int kMotionColumns           = 40;
 constexpr int kMotionRows              = 30;
 constexpr uint32_t kCaptureIntervalMs  = 280;
+constexpr uint32_t kStartupDelayMs     = 3000;
 constexpr uint32_t kFaceTimeoutMs      = 1100;
 constexpr uint32_t kGestureWindowMs    = 1800;
 constexpr uint32_t kGestureCooldownMs  = 5000;
@@ -177,6 +178,10 @@ void yuki_vision_task(void*)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
+    // The first listening transition overlaps Xiaozhi's MCP tool discovery.
+    // Let those short TLS responses finish before the face model claims SRAM.
+    vTaskDelay(pdMS_TO_TICKS(kStartupDelayMs));
+
     auto* frame = static_cast<uint8_t*>(heap_caps_malloc(kMaxFrameBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     if (frame == nullptr) {
         ESP_LOGE(kTag, "Unable to allocate vision frame buffer");
@@ -191,6 +196,7 @@ void yuki_vision_task(void*)
     float filtered_face_x = 0.0f;
     float filtered_face_y = 0.0f;
     int stable_face_samples = 0;
+    uint32_t last_stack_log_at = 0;
     ESP_LOGI(kTag, "Face following and wave wake are active");
 
     while (true) {
@@ -208,6 +214,11 @@ void yuki_vision_task(void*)
                 .pix_type = to_dl_pixel_type(format),
             };
             auto& faces = detector->run(image);
+            if (last_stack_log_at == 0 || now - last_stack_log_at >= 30000) {
+                ESP_LOGI(kTag, "Vision task stack free: %u bytes",
+                         static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr)));
+                last_stack_log_at = now;
+            }
             if (!faces.empty()) {
                 const auto best = std::max_element(faces.begin(), faces.end(), [](const auto& left, const auto& right) {
                     return left.box_area() < right.box_area();
@@ -367,7 +378,7 @@ void StartYukiVision()
     if (!vision_started.compare_exchange_strong(expected, true)) {
         return;
     }
-    if (xTaskCreatePinnedToCore(yuki_vision_task, "yuki_vision", 10240, nullptr, 2, nullptr, 0) != pdPASS) {
+    if (xTaskCreatePinnedToCore(yuki_vision_task, "yuki_vision", 8192, nullptr, 2, nullptr, 0) != pdPASS) {
         ESP_LOGE(kTag, "Unable to start vision task");
         vision_started.store(false);
     }
