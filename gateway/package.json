@@ -1,0 +1,17 @@
+{
+  "name": "yuki-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "opusscript": "^0.1.1",
+    "ws": "^8.18.3"
+  }
+}

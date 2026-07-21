@@ -1,3 +1,39 @@
+diff --git a/firmware/main/Kconfig.projbuild b/firmware/main/Kconfig.projbuild
+index 89592a0..c9fcbef 100644
+--- a/firmware/main/Kconfig.projbuild
++++ b/firmware/main/Kconfig.projbuild
+@@ -9,6 +9,31 @@ config STACKCHAN_SERVER_URL
+ 
+ endmenu
+ 
++menu "Yuki Gateway"
++
++config YUKI_GATEWAY_URL
++    string "Yuki Gateway WebSocket URL"
++    default ""
++    help
++        WebSocket URL for Yuki's self-hosted voice gateway. This replaces the
++        Xiaozhi runtime service for conversation traffic.
++
++config YUKI_GATEWAY_TOKEN
++    string "Yuki Gateway access token"
++    default ""
++    help
++        Optional bearer token for the Yuki Gateway. This must not be a cloud
++        provider credential.
++
++config YUKI_GATEWAY_PROTOCOL_VERSION
++    int "Yuki Gateway protocol version"
++    range 0 3
++    default 3
++    help
++        Wire framing version used between StackChan and Yuki Gateway.
++
++endmenu
++
+ menu "Xiaozhi Assistant"
+ 
+ config OTA_URL
 diff --git a/firmware/CMakeLists.txt b/firmware/CMakeLists.txt
 index 5ad5f86..ea28f58 100644
 --- a/firmware/CMakeLists.txt

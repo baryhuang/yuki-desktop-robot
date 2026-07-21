@@ -29,7 +29,7 @@ The face is rendered as aligned LVGL layers over a character base: brows, eyelid
 
 The agent receives physical abilities through Model Context Protocol tools. Touch and IMU events originate in independent FreeRTOS tasks, so I added a lock-free interaction record containing event age and count rather than exposing transient booleans. LED input is parsed into validated patterns for 12 independently addressable pixels. Camera, servo, reminder, interaction, and curiosity tools expose concrete device state to the conversation agent.
 
-Curiosity is a separate on-device scheduler, not a hard-coded backend feature. It stores interests and timing preferences, checks conversation state and recent visual presence, then asks the configured Xiaozhi-compatible runtime to research and choose one item. This keeps Yuki’s body, senses, timing, and tool interface on the robot while allowing the language model and search service to be replaced.
+Curiosity is a separate on-device scheduler, not a hard-coded backend feature. It stores interests and timing preferences, checks conversation state and recent visual presence, then asks the configured Yuki Gateway to research and choose one item. The gateway uses DigitalOcean Serverless Inference for chat and TTS, while its STT adapter remains independently replaceable. This keeps Yuki’s body, senses, timing, and tool interface on the robot while allowing the language model and search service to be replaced.
 
 ## How I used Codex and GPT-5.6
 
@@ -101,6 +101,7 @@ Finally, proactive behavior requires restraint. Yuki’s curiosity is gated by r
 - LVGL
 - ESP-DL
 - Model Context Protocol (MCP)
+- DigitalOcean Serverless Inference
 - ESP32-S3
 - M5Stack StackChan K151
 - CMake

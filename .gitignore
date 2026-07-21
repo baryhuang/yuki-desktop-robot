@@ -10,3 +10,6 @@ build/
 /firmware/sdkconfig
 /firmware/sdkconfig.defaults.local
 /firmware/xiaozhi-esp32/
+gateway/.env
+gateway/node_modules/
+screenlog.0

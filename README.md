@@ -12,7 +12,8 @@ The repository root contains only Yuki's authored code and the changes that inte
 
 - [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
-- [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - required modifications to the fetched Xiaozhi runtime
+- [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - modifications that turn the fetched runtime into a Yuki WebSocket client; no Xiaozhi cloud service is used
+- [`gateway/`](gateway/) - self-hosted voice gateway: DigitalOcean Serverless Inference chat and TTS, plus a pluggable OpenAI-compatible STT adapter
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
 ## Project status
@@ -28,6 +29,7 @@ Implemented during the hackathon:
 - Speech-state coordination that synchronizes Yuki's mouth, safety-aware head gestures, and two-color LED pulses while preserving face-tracking priority
 - Configurable interest-guided curiosity that autonomously asks the active backend to explore the web and start a short conversation, gated by idle state and recent face presence
 - MCP tools to configure curiosity, inspect its settings, and trigger an immediate demo without tying the firmware to one LLM provider
+- A self-hosted WebSocket voice gateway that replaces Xiaozhi cloud traffic with DigitalOcean Serverless Inference for chat and TTS
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 - A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
@@ -36,6 +38,19 @@ In active development:
 - Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
 
 The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
+
+## Voice Gateway
+
+The firmware connects only to Yuki Gateway, not to Xiaozhi. The gateway holds the DigitalOcean token, sends conversation requests to DigitalOcean Serverless Inference, and converts its TTS output into the Opus stream expected by the device. DigitalOcean currently has no documented transcription endpoint, so the gateway requires a separate OpenAI-compatible STT endpoint for microphone input. See [`gateway/README.md`](gateway/README.md).
+
+Before building a runnable image, set the gateway URL in the generated workspace. Do not put cloud credentials in firmware.
+
+```sh
+cat >> sdkconfig.defaults.local <<'EOF'
+CONFIG_YUKI_GATEWAY_URL="wss://your-yuki-gateway.example"
+CONFIG_YUKI_GATEWAY_PROTOCOL_VERSION=3
+EOF
+```
 
 ## Hardware
 
@@ -73,7 +88,7 @@ idf.py -p /dev/cu.usbmodem1101 flash
 
 > **Hardware warning:** Do not run `erase-flash` or `nvs_flash_erase()` on a configured StackChan. NVS contains device-specific servo calibration and identity values. The tilt servo must remain within its safe physical range.
 
-For a quick curiosity demo, open `AI.AGENT`, remain in view of the camera, and ask Yuki to set your interests or to share something now. The request is deferred until the current conversation returns to standby, then Yuki sends the exploration prompt through the configured Xiaozhi-compatible backend.
+For a quick curiosity demo, open `AI.AGENT`, remain in view of the camera, and ask Yuki to set your interests or to share something now. The request is deferred until the current conversation returns to standby, then Yuki sends the exploration prompt through the configured Yuki Gateway.
 
 ## How Codex contributed
 

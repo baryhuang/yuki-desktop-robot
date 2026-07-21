@@ -1,5 +1,5 @@
 diff --git a/main/application.cc b/main/application.cc
-index d69d43d..b047e60 100644
+index d69d43d..649d089 100644
 --- a/main/application.cc
 +++ b/main/application.cc
 @@ -65,8 +65,7 @@ void Application::Initialize() {
@@ -12,12 +12,12 @@ index d69d43d..b047e60 100644
  
      // Setup the audio service
      auto codec = board.GetAudioCodec();
-@@ -302,33 +301,61 @@ void Application::HandleActivationDoneEvent() {
+@@ -302,38 +301,28 @@ void Application::HandleActivationDoneEvent() {
      SystemInfo::PrintHeapStats();
      SetDeviceState(kDeviceStateIdle);
  
 -    has_server_time_ = ota_->HasServerTime();
-+    has_server_time_ = runtime_services_->HasServerTime();
++    has_server_time_ = false;
  
      auto display = Board::GetInstance().GetDisplay();
 -    std::string message = std::string(Lang::Strings::VERSION) + ota_->GetCurrentVersion();
@@ -26,14 +26,13 @@ index d69d43d..b047e60 100644
  
 -    // Release OTA object after activation is complete
 -    ota_.reset();
-+    runtime_services_.reset();
      auto& board = Board::GetInstance();
      board.SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
  
      Schedule([this]() {
-         // Play the success sound to indicate the device is ready
+-        // Play the success sound to indicate the device is ready
          audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
-+        ESP_LOGI(TAG, "Runtime services ready; waking Yuki automatically");
++        ESP_LOGI(TAG, "Yuki gateway ready; waking Yuki automatically");
 +        ToggleChatState();
      });
  }
@@ -41,49 +40,23 @@ index d69d43d..b047e60 100644
  void Application::ActivationTask() {
 -    // Create OTA object for activation process
 -    ota_ = std::make_unique<Ota>();
-+    runtime_services_ = std::make_unique<RuntimeServices>();
- 
-     // Check for new assets version
+-
+-    // Check for new assets version
      CheckAssetsVersion();
  
 -    // Check for new firmware version
 -    CheckNewVersion();
 +    auto display = Board::GetInstance().GetDisplay();
-+    display->SetStatus("Loading Yuki services...");
-+    esp_err_t config_result = runtime_services_->FetchRuntimeConfig();
-+    if (config_result != ESP_OK) {
-+        ESP_LOGW(TAG, "Runtime configuration unavailable, using saved service settings: %s",
-+                 esp_err_to_name(config_result));
-+    } else {
-+        if (runtime_services_->HasActivationCode()) {
-+            ShowActivationCode(runtime_services_->GetActivationCode(), runtime_services_->GetActivationMessage());
-+        }
-+        if (runtime_services_->HasActivationChallenge()) {
-+            display->SetStatus(Lang::Strings::ACTIVATION);
-+            esp_err_t activation_result = ESP_FAIL;
-+            for (int attempt = 0; attempt < 10 && activation_result != ESP_OK; ++attempt) {
-+                ESP_LOGI(TAG, "Activating device services... %d/10", attempt + 1);
-+                activation_result = runtime_services_->Activate();
-+                if (activation_result != ESP_OK) {
-+                    vTaskDelay(pdMS_TO_TICKS(activation_result == ESP_ERR_TIMEOUT ? 3000 : 10000));
-+                }
-+            }
-+            if (activation_result != ESP_OK) {
-+                ESP_LOGW(TAG, "Device service activation did not complete: %s",
-+                         esp_err_to_name(activation_result));
-+            } else {
-+                config_result = runtime_services_->FetchRuntimeConfig();
-+                if (config_result != ESP_OK) {
-+                    ESP_LOGW(TAG, "Could not refresh service settings after activation: %s",
-+                             esp_err_to_name(config_result));
-+                }
-+            }
-+        }
-+    }
++    display->SetStatus("Connecting to Yuki gateway...");
  
-     // Initialize the protocol
+-    // Initialize the protocol
      InitializeProtocol();
-@@ -395,81 +422,6 @@ void Application::CheckAssetsVersion() {
+-
+-    // Signal completion to main loop
+     xEventGroupSetBits(event_group_, MAIN_EVENT_ACTIVATION_DONE);
+ }
+ 
+@@ -395,81 +384,6 @@ void Application::CheckAssetsVersion() {
      display->SetEmotion("microchip_ai");
  }
  
@@ -165,21 +138,19 @@ index d69d43d..b047e60 100644
  void Application::InitializeProtocol() {
      auto& board = Board::GetInstance();
      auto display = board.GetDisplay();
-@@ -477,17 +429,21 @@ void Application::InitializeProtocol() {
+@@ -477,17 +391,14 @@ void Application::InitializeProtocol() {
  
      display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
  
 -    if (ota_->HasMqttConfig()) {
-+    if (runtime_services_->HasMqttConfig()) {
-         protocol_ = std::make_unique<MqttProtocol>();
+-        protocol_ = std::make_unique<MqttProtocol>();
 -    } else if (ota_->HasWebsocketConfig()) {
-+    } else if (runtime_services_->HasWebsocketConfig()) {
-         protocol_ = std::make_unique<WebsocketProtocol>();
-     } else {
+-        protocol_ = std::make_unique<WebsocketProtocol>();
+-    } else {
 -        ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
-+        ESP_LOGW(TAG, "No protocol specified in the service config, using MQTT");
-         protocol_ = std::make_unique<MqttProtocol>();
-     }
+-        protocol_ = std::make_unique<MqttProtocol>();
+-    }
++    protocol_ = std::make_unique<WebsocketProtocol>();
  
      protocol_->OnConnected([this]() {
          DismissAlert();
@@ -190,7 +161,7 @@ index d69d43d..b047e60 100644
      });
  
      protocol_->OnNetworkError([this](const std::string& message) {
-@@ -565,6 +521,7 @@ void Application::InitializeProtocol() {
+@@ -565,6 +476,7 @@ void Application::InitializeProtocol() {
          } else if (strcmp(type->valuestring, "mcp") == 0) {
              auto payload = cJSON_GetObjectItem(root, "payload");
              if (cJSON_IsObject(payload)) {
@@ -198,7 +169,7 @@ index d69d43d..b047e60 100644
                  McpServer::GetInstance().ParseMessage(payload);
              }
          } else if (strcmp(type->valuestring, "system") == 0) {
-@@ -572,7 +529,7 @@ void Application::InitializeProtocol() {
+@@ -572,7 +484,7 @@ void Application::InitializeProtocol() {
              if (cJSON_IsString(command)) {
                  ESP_LOGI(TAG, "System command: %s", command->valuestring);
                  if (strcmp(command->valuestring, "reboot") == 0) {
@@ -207,7 +178,7 @@ index d69d43d..b047e60 100644
                      Schedule([this]() {
                          Reboot();
                      });
-@@ -610,33 +567,36 @@ void Application::InitializeProtocol() {
+@@ -610,33 +522,36 @@ void Application::InitializeProtocol() {
  }
  
  void Application::ShowActivationCode(const std::string& code, const std::string& message) {
@@ -271,7 +242,7 @@ index d69d43d..b047e60 100644
  }
  
  void Application::Alert(const char* status, const char* message, const char* emotion, const std::string_view& sound) {
-@@ -964,58 +924,6 @@ void Application::Reboot() {
+@@ -964,58 +879,6 @@ void Application::Reboot() {
      esp_restart();
  }
  
@@ -330,7 +301,7 @@ index d69d43d..b047e60 100644
  void Application::WakeWordInvoke(const std::string& wake_word) {
      if (!protocol_) {
          return;
-@@ -1049,6 +957,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
+@@ -1049,6 +912,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
      }
  }
  
@@ -365,7 +336,7 @@ index d69d43d..b047e60 100644
  bool Application::CanEnterSleepMode() {
      if (GetDeviceState() != kDeviceStateIdle) {
          return false;
-@@ -1116,4 +1052,3 @@ void Application::ResetProtocol() {
+@@ -1116,4 +1007,3 @@ void Application::ResetProtocol() {
          protocol_.reset();
      });
  }
@@ -623,7 +594,7 @@ index 15e9cc5..d176ddc 100644
      size_t chunk_size = afe_iface_->get_feed_chunksize(afe_data_) * codec_->input_channels();
      while (input_buffer_.size() >= chunk_size) {
 diff --git a/main/audio/processors/afe_audio_processor.h b/main/audio/processors/afe_audio_processor.h
-index fe2f025..01992da 100644
+index fe2f025..280e296 100644
 --- a/main/audio/processors/afe_audio_processor.h
 +++ b/main/audio/processors/afe_audio_processor.h
 @@ -41,8 +41,10 @@ private:
@@ -638,7 +609,7 @@ index fe2f025..01992da 100644
  
 -#endif 
 \ No newline at end of file
-+#endif 
++#endif
 diff --git a/main/boards/common/i2c_device.cc b/main/boards/common/i2c_device.cc
 index 835997d..ea50d51 100644
 --- a/main/boards/common/i2c_device.cc
@@ -1164,3 +1135,28 @@ index 1e5d687..ba3f9d5 100644
  
 -#endif // _OTA_H
 +#endif // _RUNTIME_SERVICES_H
+diff --git a/main/protocols/websocket_protocol.cc b/main/protocols/websocket_protocol.cc
+index f0cc034..9c60723 100644
+--- a/main/protocols/websocket_protocol.cc
++++ b/main/protocols/websocket_protocol.cc
+@@ -81,12 +81,14 @@ void WebsocketProtocol::CloseAudioChannel(bool send_goodbye) {
+ }
+ 
+ bool WebsocketProtocol::OpenAudioChannel() {
+-    Settings settings("websocket", false);
+-    std::string url = settings.GetString("url");
+-    std::string token = settings.GetString("token");
+-    int version = settings.GetInt("version");
+-    if (version != 0) {
+-        version_ = version;
++    std::string url = CONFIG_YUKI_GATEWAY_URL;
++    std::string token = CONFIG_YUKI_GATEWAY_TOKEN;
++    version_ = CONFIG_YUKI_GATEWAY_PROTOCOL_VERSION;
++
++    if (url.empty()) {
++        ESP_LOGE(TAG, "Yuki gateway URL is not configured");
++        SetError("Yuki gateway URL is not configured");
++        return false;
+     }
+ 
+     error_occurred_ = false;
