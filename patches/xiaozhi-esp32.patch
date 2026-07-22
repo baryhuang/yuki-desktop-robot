@@ -1,8 +1,40 @@
 diff --git a/main/application.cc b/main/application.cc
-index d69d43d..3dc58bc 100644
+index d69d43d..184d3e5 100644
 --- a/main/application.cc
 +++ b/main/application.cc
-@@ -65,8 +65,7 @@ void Application::Initialize() {
+@@ -44,6 +44,18 @@ Application::Application() {
+         .skip_unhandled_events = true
+     };
+     esp_timer_create(&clock_timer_args, &clock_timer_handle_);
++
++    esp_timer_create_args_t gateway_reconnect_timer_args = {
++        .callback = [](void* arg) {
++            Application* app = static_cast<Application*>(arg);
++            xEventGroupSetBits(app->event_group_, MAIN_EVENT_GATEWAY_RECONNECT);
++        },
++        .arg = this,
++        .dispatch_method = ESP_TIMER_TASK,
++        .name = "gateway_reconnect",
++        .skip_unhandled_events = true
++    };
++    esp_timer_create(&gateway_reconnect_timer_args, &gateway_reconnect_timer_handle_);
+ }
+ 
+ Application::~Application() {
+@@ -51,6 +63,12 @@ Application::~Application() {
+         esp_timer_stop(clock_timer_handle_);
+         esp_timer_delete(clock_timer_handle_);
+     }
++    if (gateway_reconnect_timer_handle_ != nullptr) {
++        if (esp_timer_is_active(gateway_reconnect_timer_handle_)) {
++            esp_timer_stop(gateway_reconnect_timer_handle_);
++        }
++        esp_timer_delete(gateway_reconnect_timer_handle_);
++    }
+     vEventGroupDelete(event_group_);
+ }
+ 
+@@ -65,8 +83,7 @@ void Application::Initialize() {
      // Setup the display
      auto display = board.GetDisplay();
      display->SetupUI();
@@ -12,7 +44,57 @@ index d69d43d..3dc58bc 100644
  
      // Setup the audio service
      auto codec = board.GetAudioCodec();
-@@ -297,43 +296,32 @@ void Application::HandleNetworkDisconnectedEvent() {
+@@ -179,7 +196,8 @@ void Application::Run() {
+         MAIN_EVENT_START_LISTENING |
+         MAIN_EVENT_STOP_LISTENING |
+         MAIN_EVENT_ACTIVATION_DONE |
+-        MAIN_EVENT_STATE_CHANGED;
++        MAIN_EVENT_STATE_CHANGED |
++        MAIN_EVENT_GATEWAY_RECONNECT;
+ 
+     while (true) {
+         auto bits = xEventGroupWaitBits(event_group_, ALL_EVENTS, pdTRUE, pdFALSE, portMAX_DELAY);
+@@ -205,6 +223,10 @@ void Application::Run() {
+             HandleStateChangedEvent();
+         }
+ 
++        if (bits & MAIN_EVENT_GATEWAY_RECONNECT) {
++            HandleGatewayReconnectEvent();
++        }
++
+         if (bits & MAIN_EVENT_TOGGLE_CHAT) {
+             HandleToggleChatEvent();
+         }
+@@ -260,6 +282,7 @@ void Application::Run() {
+ 
+ void Application::HandleNetworkConnectedEvent() {
+     ESP_LOGI(TAG, "Network connected");
++    network_connected_ = true;
+     auto state = GetDeviceState();
+ 
+     if (state == kDeviceStateStarting || state == kDeviceStateWifiConfiguring) {
+@@ -276,6 +299,8 @@ void Application::HandleNetworkConnectedEvent() {
+             app->activation_task_handle_ = nullptr;
+             vTaskDelete(NULL);
+         }, "activation", 4096 * 2, this, 2, &activation_task_handle_);
++    } else if (state == kDeviceStateIdle && protocol_ != nullptr) {
++        ScheduleGatewayReconnect(100);
+     }
+ 
+     // Update the status bar immediately to show the network state
+@@ -284,6 +309,11 @@ void Application::HandleNetworkConnectedEvent() {
+ }
+ 
+ void Application::HandleNetworkDisconnectedEvent() {
++    network_connected_ = false;
++    if (gateway_reconnect_timer_handle_ != nullptr && esp_timer_is_active(gateway_reconnect_timer_handle_)) {
++        esp_timer_stop(gateway_reconnect_timer_handle_);
++    }
++
+     // Close current conversation when network disconnected
+     auto state = GetDeviceState();
+     if (state == kDeviceStateConnecting || state == kDeviceStateListening || state == kDeviceStateSpeaking) {
+@@ -297,43 +327,32 @@ void Application::HandleNetworkDisconnectedEvent() {
  }
  
  void Application::HandleActivationDoneEvent() {
@@ -62,7 +144,7 @@ index d69d43d..3dc58bc 100644
      xEventGroupSetBits(event_group_, MAIN_EVENT_ACTIVATION_DONE);
  }
  
-@@ -395,81 +383,6 @@ void Application::CheckAssetsVersion() {
+@@ -395,81 +414,6 @@ void Application::CheckAssetsVersion() {
      display->SetEmotion("microchip_ai");
  }
  
@@ -144,7 +226,7 @@ index d69d43d..3dc58bc 100644
  void Application::InitializeProtocol() {
      auto& board = Board::GetInstance();
      auto display = board.GetDisplay();
-@@ -477,14 +390,8 @@ void Application::InitializeProtocol() {
+@@ -477,22 +421,19 @@ void Application::InitializeProtocol() {
  
      display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
  
@@ -161,7 +243,28 @@ index d69d43d..3dc58bc 100644
  
      protocol_->OnConnected([this]() {
          DismissAlert();
-@@ -565,6 +472,7 @@ void Application::InitializeProtocol() {
+     });
+ 
+     protocol_->OnNetworkError([this](const std::string& message) {
+-        last_error_message_ = message;
+-        xEventGroupSetBits(event_group_, MAIN_EVENT_ERROR);
++        ESP_LOGW(TAG, "Yuki gateway error: %s; reconnecting", message.c_str());
++        Schedule([this]() {
++            SetDeviceState(kDeviceStateIdle);
++            ScheduleGatewayReconnect();
++        });
+     });
+     
+     protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacket> packet) {
+@@ -515,6 +456,7 @@ void Application::InitializeProtocol() {
+             auto display = Board::GetInstance().GetDisplay();
+             display->SetChatMessage("system", "");
+             SetDeviceState(kDeviceStateIdle);
++            ScheduleGatewayReconnect();
+         });
+     });
+     
+@@ -565,6 +507,7 @@ void Application::InitializeProtocol() {
          } else if (strcmp(type->valuestring, "mcp") == 0) {
              auto payload = cJSON_GetObjectItem(root, "payload");
              if (cJSON_IsObject(payload)) {
@@ -169,7 +272,7 @@ index d69d43d..3dc58bc 100644
                  McpServer::GetInstance().ParseMessage(payload);
              }
          } else if (strcmp(type->valuestring, "system") == 0) {
-@@ -572,7 +480,7 @@ void Application::InitializeProtocol() {
+@@ -572,7 +515,7 @@ void Application::InitializeProtocol() {
              if (cJSON_IsString(command)) {
                  ESP_LOGI(TAG, "System command: %s", command->valuestring);
                  if (strcmp(command->valuestring, "reboot") == 0) {
@@ -178,7 +281,7 @@ index d69d43d..3dc58bc 100644
                      Schedule([this]() {
                          Reboot();
                      });
-@@ -616,7 +524,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
+@@ -616,7 +559,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
      };
      static const std::array<digit_sound, 10> digit_sounds{{
          digit_sound{'0', Lang::Sounds::OGG_0},
@@ -187,7 +290,7 @@ index d69d43d..3dc58bc 100644
          digit_sound{'2', Lang::Sounds::OGG_2},
          digit_sound{'3', Lang::Sounds::OGG_3},
          digit_sound{'4', Lang::Sounds::OGG_4},
-@@ -627,9 +535,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
+@@ -627,9 +570,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
          digit_sound{'9', Lang::Sounds::OGG_9}
      }};
  
@@ -197,7 +300,53 @@ index d69d43d..3dc58bc 100644
      for (const auto& digit : code) {
          auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
              [digit](const digit_sound& ds) { return ds.digit == digit; });
-@@ -964,58 +870,6 @@ void Application::Reboot() {
+@@ -718,6 +659,8 @@ void Application::ContinueOpenAudioChannel(ListeningMode mode) {
+ 
+     if (!protocol_->IsAudioChannelOpened()) {
+         if (!protocol_->OpenAudioChannel()) {
++            SetDeviceState(kDeviceStateIdle);
++            ScheduleGatewayReconnect();
+             return;
+         }
+     }
+@@ -725,6 +668,36 @@ void Application::ContinueOpenAudioChannel(ListeningMode mode) {
+     SetListeningMode(mode);
+ }
+ 
++void Application::ScheduleGatewayReconnect(uint32_t delay_ms) {
++    if (!network_connected_ || protocol_ == nullptr || gateway_reconnect_timer_handle_ == nullptr) {
++        return;
++    }
++    if (esp_timer_is_active(gateway_reconnect_timer_handle_)) {
++        esp_timer_stop(gateway_reconnect_timer_handle_);
++    }
++    esp_timer_start_once(gateway_reconnect_timer_handle_, delay_ms * 1000ULL);
++}
++
++void Application::HandleGatewayReconnectEvent() {
++    if (!network_connected_ || protocol_ == nullptr || protocol_->IsAudioChannelOpened()) {
++        return;
++    }
++
++    auto state = GetDeviceState();
++    if (state != kDeviceStateIdle && state != kDeviceStateConnecting) {
++        return;
++    }
++
++    ESP_LOGI(TAG, "Reconnecting to Yuki gateway automatically");
++    SetDeviceState(kDeviceStateConnecting);
++    if (!protocol_->OpenAudioChannel()) {
++        SetDeviceState(kDeviceStateIdle);
++        ScheduleGatewayReconnect();
++        return;
++    }
++    SetListeningMode(GetDefaultListeningMode());
++}
++
+ void Application::HandleStartListeningEvent() {
+     auto state = GetDeviceState();
+     
+@@ -964,58 +937,6 @@ void Application::Reboot() {
      esp_restart();
  }
  
@@ -256,7 +405,7 @@ index d69d43d..3dc58bc 100644
  void Application::WakeWordInvoke(const std::string& wake_word) {
      if (!protocol_) {
          return;
-@@ -1049,6 +903,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
+@@ -1049,6 +970,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
      }
  }
  
@@ -291,13 +440,13 @@ index d69d43d..3dc58bc 100644
  bool Application::CanEnterSleepMode() {
      if (GetDeviceState() != kDeviceStateIdle) {
          return false;
-@@ -1116,4 +998,3 @@ void Application::ResetProtocol() {
+@@ -1116,4 +1065,3 @@ void Application::ResetProtocol() {
          protocol_.reset();
      });
  }
 -
 diff --git a/main/application.h b/main/application.h
-index 7ca7af4..6946922 100644
+index 7ca7af4..ef4d25a 100644
 --- a/main/application.h
 +++ b/main/application.h
 @@ -12,7 +12,6 @@
@@ -308,7 +457,15 @@ index 7ca7af4..6946922 100644
  #include "audio_service.h"
  #include "device_state.h"
  #include "device_state_machine.h"
-@@ -105,7 +104,7 @@ public:
+@@ -31,6 +30,7 @@
+ #define MAIN_EVENT_START_LISTENING      (1 << 10)
+ #define MAIN_EVENT_STOP_LISTENING       (1 << 11)
+ #define MAIN_EVENT_STATE_CHANGED        (1 << 12)
++#define MAIN_EVENT_GATEWAY_RECONNECT     (1 << 13)
+ 
+ 
+ enum AecMode {
+@@ -105,7 +105,7 @@ public:
  
      void Reboot();
      void WakeWordInvoke(const std::string& wake_word);
@@ -317,7 +474,7 @@ index 7ca7af4..6946922 100644
      bool CanEnterSleepMode();
      void SendMcpMessage(const std::string& payload);
      void SetAecMode(AecMode mode);
-@@ -116,7 +115,7 @@ public:
+@@ -116,7 +116,7 @@ public:
      /**
       * Reset protocol resources (thread-safe)
       * Can be called from any task to release resources allocated after network connected
@@ -326,7 +483,13 @@ index 7ca7af4..6946922 100644
       */
      void ResetProtocol();
  
-@@ -134,8 +133,6 @@ private:
+@@ -129,17 +129,17 @@ private:
+     std::unique_ptr<Protocol> protocol_;
+     EventGroupHandle_t event_group_ = nullptr;
+     esp_timer_handle_t clock_timer_handle_ = nullptr;
++    esp_timer_handle_t gateway_reconnect_timer_handle_ = nullptr;
+     DeviceStateMachine state_machine_;
+     ListeningMode listening_mode_ = kListeningModeAutoStop;
      AecMode aec_mode_ = kAecOff;
      std::string last_error_message_;
      AudioService audio_service_;
@@ -335,8 +498,16 @@ index 7ca7af4..6946922 100644
      bool has_server_time_ = false;
      bool aborted_ = false;
      bool assets_version_checked_ = false;
-@@ -155,13 +152,13 @@ private:
+     bool play_popup_on_listening_ = false;  // Flag to play popup sound after state changes to listening
++    bool network_connected_ = false;
+     int clock_ticks_ = 0;
+     TaskHandle_t activation_task_handle_ = nullptr;
+ 
+@@ -153,19 +153,21 @@ private:
+     void HandleNetworkDisconnectedEvent();
+     void HandleActivationDoneEvent();
      void HandleWakeWordDetectedEvent();
++    void HandleGatewayReconnectEvent();
      void ContinueOpenAudioChannel(ListeningMode mode);
      void ContinueWakeWordInvoke(const std::string& wake_word);
 +    void ContinueProactiveConversation(const std::string& prompt);
@@ -350,6 +521,11 @@ index 7ca7af4..6946922 100644
      void InitializeProtocol();
      void ShowActivationCode(const std::string& code, const std::string& message);
      void SetListeningMode(ListeningMode mode);
+     ListeningMode GetDefaultListeningMode() const;
++    void ScheduleGatewayReconnect(uint32_t delay_ms = 2000);
+     
+     // State change handler called by state machine
+     void OnStateChanged(DeviceState old_state, DeviceState new_state);
 diff --git a/main/assets.cc b/main/assets.cc
 index ad61944..6b84daf 100644
 --- a/main/assets.cc
