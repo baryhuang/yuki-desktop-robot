@@ -45,7 +45,7 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
   assert.deepEqual(Buffer.from(realtimeInputs[0].audio.data, 'base64'), Buffer.from([1, 0, 2, 0]));
 
   await bridge.handleMessage({
-    serverContent: {inputTranscription: {text: 'Hello Yuki', finished: true}},
+    serverContent: {inputTranscription: {text: 'Hello Yuki'}},
   });
   await bridge.handleMessage({
     serverContent: {

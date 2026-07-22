@@ -45,6 +45,7 @@ export class GeminiLiveBridge {
     this.listening = false;
     this.acceptOutput = false;
     this.inputTranscript = '';
+    this.lastSentInputTranscript = '';
     this.outputTranscript = '';
     this.lastSentOutputTranscript = '';
     this.outputEncoder = this.createEncoder();
@@ -76,6 +77,7 @@ export class GeminiLiveBridge {
     const live = await this.connect();
     this.stopOutput(true);
     this.inputTranscript = '';
+    this.lastSentInputTranscript = '';
     this.outputTranscript = '';
     this.lastSentOutputTranscript = '';
     this.listening = true;
@@ -87,6 +89,7 @@ export class GeminiLiveBridge {
     const live = await this.connect();
     this.stopOutput(true);
     this.inputTranscript = '';
+    this.lastSentInputTranscript = '';
     this.outputTranscript = '';
     this.lastSentOutputTranscript = '';
     this.acceptOutput = true;
@@ -169,6 +172,7 @@ export class GeminiLiveBridge {
       this.stopOutput(true);
       this.rotateIfReady();
     } else if (content.turnComplete) {
+      this.flushInputTranscript();
       this.turnActive = false;
       this.finishOutput();
       this.rotateIfReady();
@@ -271,10 +275,15 @@ export class GeminiLiveBridge {
     }
     this.inputTranscript = mergeTranscript(this.inputTranscript, transcription.text);
     if (sendWhenFinished && transcription.finished) {
-      const text = this.inputTranscript.trim();
-      if (text) {
-        this.sendJson({type: 'stt', text});
-      }
+      this.flushInputTranscript();
+    }
+  }
+
+  flushInputTranscript() {
+    const text = this.inputTranscript.trim();
+    if (text && text !== this.lastSentInputTranscript) {
+      this.lastSentInputTranscript = text;
+      this.sendJson({type: 'stt', text});
     }
   }
 
