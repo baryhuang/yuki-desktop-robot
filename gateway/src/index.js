@@ -237,7 +237,7 @@ function readConfig(env) {
     gatewayToken: env.YUKI_GATEWAY_TOKEN,
     geminiApiKey: env.GEMINI_API_KEY,
     geminiModel: env.YUKI_GEMINI_MODEL ?? 'gemini-3.1-flash-live-preview',
-    geminiVoice: env.YUKI_GEMINI_VOICE ?? 'Leda',
+    geminiVoice: env.YUKI_GEMINI_VOICE ?? 'Zephyr',
     geminiVisionModel: env.YUKI_GEMINI_VISION_MODEL ?? 'gemini-3.6-flash',
     googleSearchEnabled: env.YUKI_ENABLE_GOOGLE_SEARCH !== 'false',
     visionUrl: env.YUKI_VISION_URL ?? (env.YUKI_GATEWAY_HOST ? `https://${env.YUKI_GATEWAY_HOST}/vision` : undefined),
