@@ -9,6 +9,11 @@ The gateway uses the current Gemini Developer API SDK, `@google/genai@2.13.0`,
 with `gemini-3.1-flash-live-preview` for realtime voice and
 `gemini-3.6-flash` for explicit camera analysis.
 
+Gemini's automatic voice activity detection closes each spoken turn after 700
+ms of silence. This matches StackChan's continuous auto-listening mode: the
+device keeps streaming microphone audio, while the gateway receives and plays
+Gemini's response without waiting for a separate device-side stop command.
+
 The gateway also discovers the robot's MCP tools at connection time. Gemini
 function calls are sent to the physical device as MCP `tools/call` requests,
 and the device results are returned to the same Gemini Live session. During MCP

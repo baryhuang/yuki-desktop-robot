@@ -18,7 +18,8 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
       connect: async (params) => {
         callbacks = params.callbacks;
         assert.equal(params.model, 'gemini-3.1-flash-live-preview');
-        assert.equal(params.config.realtimeInputConfig.automaticActivityDetection.disabled, true);
+        assert.equal(params.config.realtimeInputConfig.automaticActivityDetection.disabled, false);
+        assert.equal(params.config.realtimeInputConfig.automaticActivityDetection.silenceDurationMs, 700);
         assert.deepEqual(params.config.tools[0], {googleSearch: {}});
         assert.equal(params.config.tools[1].functionDeclarations[0].name, 'self.robot.wave');
         return fakeSession;
@@ -39,12 +40,9 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
   await bridge.connect();
   await bridge.startListening();
   bridge.sendInputPcm(Buffer.from([1, 0, 2, 0]));
-  bridge.stopListening();
 
-  assert.deepEqual(realtimeInputs[0], {activityStart: {}});
-  assert.equal(realtimeInputs[1].audio.mimeType, 'audio/pcm;rate=16000');
-  assert.deepEqual(Buffer.from(realtimeInputs[1].audio.data, 'base64'), Buffer.from([1, 0, 2, 0]));
-  assert.deepEqual(realtimeInputs[2], {activityEnd: {}});
+  assert.equal(realtimeInputs[0].audio.mimeType, 'audio/pcm;rate=16000');
+  assert.deepEqual(Buffer.from(realtimeInputs[0].audio.data, 'base64'), Buffer.from([1, 0, 2, 0]));
 
   await bridge.handleMessage({
     serverContent: {inputTranscription: {text: 'Hello Yuki', finished: true}},
@@ -68,6 +66,9 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
   assert.ok(audioPackets[0].length > 0);
   assert.deepEqual(toolResponses, []);
   assert.equal(typeof callbacks.onmessage, 'function');
+
+  bridge.stopListening();
+  assert.deepEqual(realtimeInputs[1], {audioStreamEnd: true});
   bridge.close();
 });
 

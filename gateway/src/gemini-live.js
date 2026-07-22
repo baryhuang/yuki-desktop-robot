@@ -1,4 +1,9 @@
-import {GoogleGenAI, Modality} from '@google/genai';
+import {
+  EndSensitivity,
+  GoogleGenAI,
+  Modality,
+  StartSensitivity,
+} from '@google/genai';
 import {
   FRAME_DURATION_MS,
   OUTPUT_SAMPLE_RATE,
@@ -74,9 +79,8 @@ export class GeminiLiveBridge {
     this.outputTranscript = '';
     this.lastSentOutputTranscript = '';
     this.listening = true;
-    this.acceptOutput = false;
+    this.acceptOutput = true;
     this.turnActive = true;
-    live.sendRealtimeInput({activityStart: {}});
   }
 
   async sendText(text) {
@@ -108,13 +112,10 @@ export class GeminiLiveBridge {
     }
     this.listening = false;
     this.acceptOutput = true;
-    this.liveSession.sendRealtimeInput({activityEnd: {}});
+    this.liveSession.sendRealtimeInput({audioStreamEnd: true});
   }
 
   abort() {
-    if (this.listening && this.liveSession) {
-      this.liveSession.sendRealtimeInput({activityEnd: {}});
-    }
     this.listening = false;
     this.acceptOutput = false;
     this.turnActive = false;
@@ -200,7 +201,13 @@ export class GeminiLiveBridge {
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         realtimeInputConfig: {
-          automaticActivityDetection: {disabled: true},
+          automaticActivityDetection: {
+            disabled: false,
+            startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_LOW,
+            endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+            prefixPaddingMs: 100,
+            silenceDurationMs: 700,
+          },
         },
         contextWindowCompression: {
           triggerTokens: '100000',
