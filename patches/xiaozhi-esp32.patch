@@ -1,5 +1,5 @@
 diff --git a/main/application.cc b/main/application.cc
-index d69d43d..9ea84aa 100644
+index d69d43d..3dc58bc 100644
 --- a/main/application.cc
 +++ b/main/application.cc
 @@ -65,8 +65,7 @@ void Application::Initialize() {
@@ -9,98 +9,63 @@ index d69d43d..9ea84aa 100644
 -    // Print board name/version info
 -    display->SetChatMessage("system", SystemInfo::GetUserAgent().c_str());
 +    display->SetChatMessage("system", "Yuki " FIRMWARE_VERSION);
-
+ 
      // Setup the audio service
      auto codec = board.GetAudioCodec();
-@@ -302,38 +301,69 @@ void Application::HandleActivationDoneEvent() {
+@@ -297,43 +296,32 @@ void Application::HandleNetworkDisconnectedEvent() {
+ }
+ 
+ void Application::HandleActivationDoneEvent() {
+-    ESP_LOGI(TAG, "Activation done");
++    ESP_LOGI(TAG, "Yuki gateway initialization done");
+ 
      SystemInfo::PrintHeapStats();
      SetDeviceState(kDeviceStateIdle);
-
+ 
 -    has_server_time_ = ota_->HasServerTime();
-+    has_server_time_ = runtime_services_ && runtime_services_->HasServerTime();
-
++    has_server_time_ = false;
+ 
      auto display = Board::GetInstance().GetDisplay();
 -    std::string message = std::string(Lang::Strings::VERSION) + ota_->GetCurrentVersion();
 -    display->ShowNotification(message.c_str());
      display->SetChatMessage("system", "");
-
+ 
 -    // Release OTA object after activation is complete
 -    ota_.reset();
      auto& board = Board::GetInstance();
      board.SetPowerSaveLevel(PowerSaveLevel::LOW_POWER);
-
+ 
      Schedule([this]() {
 -        // Play the success sound to indicate the device is ready
          audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
-+        ESP_LOGI(TAG, "Xiaozhi service ready; waking Yuki automatically");
++        ESP_LOGI(TAG, "Yuki gateway ready; waking Yuki automatically");
 +        ToggleChatState();
      });
-+
-+    runtime_services_.reset();
  }
-
+ 
  void Application::ActivationTask() {
 -    // Create OTA object for activation process
 -    ota_ = std::make_unique<Ota>();
 -
 -    // Check for new assets version
-+    runtime_services_ = std::make_unique<RuntimeServices>();
      CheckAssetsVersion();
-
+ 
 -    // Check for new firmware version
 -    CheckNewVersion();
-+    auto display = Board::GetInstance().GetDisplay();
-+    int consecutive_failures = 0;
-+    while (true) {
-+        display->SetStatus("Connecting to Xiaozhi...");
-+        esp_err_t err = runtime_services_->FetchRuntimeConfig();
-+        if (err != ESP_OK) {
-+            ++consecutive_failures;
-+            if (consecutive_failures >= 5) {
-+                last_error_message_ = "Unable to get Xiaozhi service configuration";
-+                xEventGroupSetBits(event_group_, MAIN_EVENT_ERROR);
-+                return;
-+            }
-+            ESP_LOGW(TAG, "Xiaozhi configuration failed (%s), retrying", esp_err_to_name(err));
-+            vTaskDelay(pdMS_TO_TICKS(3000));
-+            continue;
-+        }
-+        consecutive_failures = 0;
-
+-
 -    // Initialize the protocol
--    InitializeProtocol();
-+        if (!runtime_services_->HasActivationCode() && !runtime_services_->HasActivationChallenge()) {
-+            break;
-+        }
-+
-+        display->SetStatus(Lang::Strings::ACTIVATION);
-+        if (runtime_services_->HasActivationCode()) {
-+            ShowActivationCode(runtime_services_->GetActivationCode(), runtime_services_->GetActivationMessage());
-+        }
-+        if (runtime_services_->HasActivationChallenge()) {
-+            err = runtime_services_->Activate();
-+            if (err != ESP_OK && err != ESP_ERR_TIMEOUT) {
-+                ESP_LOGW(TAG, "Xiaozhi activation failed: %s", esp_err_to_name(err));
-+            }
-+        }
-+        vTaskDelay(pdMS_TO_TICKS(3000));
-+    }
-
++    auto display = Board::GetInstance().GetDisplay();
++    display->SetStatus("Connecting to Yuki gateway...");
+     InitializeProtocol();
+-
 -    // Signal completion to main loop
-+    if (!runtime_services_->HasMqttConfig() && !runtime_services_->HasWebsocketConfig()) {
-+        last_error_message_ = "Xiaozhi returned no conversation protocol";
-+        xEventGroupSetBits(event_group_, MAIN_EVENT_ERROR);
-+        return;
-+    }
-+
-+    InitializeProtocol();
      xEventGroupSetBits(event_group_, MAIN_EVENT_ACTIVATION_DONE);
  }
-
-@@ -395,81 +425,6 @@ void Application::CheckAssetsVersion() {
+ 
+@@ -395,81 +383,6 @@ void Application::CheckAssetsVersion() {
      display->SetEmotion("microchip_ai");
  }
-
+ 
 -void Application::CheckNewVersion() {
 -    const int MAX_RETRY = 10;
 -    int retry_count = 0;
@@ -179,25 +144,24 @@ index d69d43d..9ea84aa 100644
  void Application::InitializeProtocol() {
      auto& board = Board::GetInstance();
      auto display = board.GetDisplay();
-@@ -477,13 +432,12 @@ void Application::InitializeProtocol() {
-
+@@ -477,14 +390,8 @@ void Application::InitializeProtocol() {
+ 
      display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
-
+ 
 -    if (ota_->HasMqttConfig()) {
-+    if (runtime_services_->HasMqttConfig()) {
-+        ESP_LOGI(TAG, "Using Xiaozhi MQTT service");
-         protocol_ = std::make_unique<MqttProtocol>();
+-        protocol_ = std::make_unique<MqttProtocol>();
 -    } else if (ota_->HasWebsocketConfig()) {
 -        protocol_ = std::make_unique<WebsocketProtocol>();
-     } else {
+-    } else {
 -        ESP_LOGW(TAG, "No protocol specified in the OTA config, using MQTT");
 -        protocol_ = std::make_unique<MqttProtocol>();
-+        ESP_LOGI(TAG, "Using Xiaozhi WebSocket service");
-+        protocol_ = std::make_unique<WebsocketProtocol>();
-     }
-
+-    }
++    ESP_LOGI(TAG, "Using Yuki Gemini Live gateway");
++    protocol_ = std::make_unique<WebsocketProtocol>();
+ 
      protocol_->OnConnected([this]() {
-@@ -565,6 +519,7 @@ void Application::InitializeProtocol() {
+         DismissAlert();
+@@ -565,6 +472,7 @@ void Application::InitializeProtocol() {
          } else if (strcmp(type->valuestring, "mcp") == 0) {
              auto payload = cJSON_GetObjectItem(root, "payload");
              if (cJSON_IsObject(payload)) {
@@ -205,7 +169,7 @@ index d69d43d..9ea84aa 100644
                  McpServer::GetInstance().ParseMessage(payload);
              }
          } else if (strcmp(type->valuestring, "system") == 0) {
-@@ -572,7 +527,7 @@ void Application::InitializeProtocol() {
+@@ -572,7 +480,7 @@ void Application::InitializeProtocol() {
              if (cJSON_IsString(command)) {
                  ESP_LOGI(TAG, "System command: %s", command->valuestring);
                  if (strcmp(command->valuestring, "reboot") == 0) {
@@ -214,7 +178,7 @@ index d69d43d..9ea84aa 100644
                      Schedule([this]() {
                          Reboot();
                      });
-@@ -616,7 +571,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
+@@ -616,7 +524,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
      };
      static const std::array<digit_sound, 10> digit_sounds{{
          digit_sound{'0', Lang::Sounds::OGG_0},
@@ -223,20 +187,20 @@ index d69d43d..9ea84aa 100644
          digit_sound{'2', Lang::Sounds::OGG_2},
          digit_sound{'3', Lang::Sounds::OGG_3},
          digit_sound{'4', Lang::Sounds::OGG_4},
-@@ -627,9 +582,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
+@@ -627,9 +535,7 @@ void Application::ShowActivationCode(const std::string& code, const std::string&
          digit_sound{'9', Lang::Sounds::OGG_9}
      }};
-
+ 
 -    // This sentence uses 9KB of SRAM, so we need to wait for it to finish
      Alert(Lang::Strings::ACTIVATION, message.c_str(), "link", Lang::Sounds::OGG_ACTIVATION);
 -
      for (const auto& digit : code) {
          auto it = std::find_if(digit_sounds.begin(), digit_sounds.end(),
              [digit](const digit_sound& ds) { return ds.digit == digit; });
-@@ -964,58 +917,6 @@ void Application::Reboot() {
+@@ -964,58 +870,6 @@ void Application::Reboot() {
      esp_restart();
  }
-
+ 
 -bool Application::UpgradeFirmware(const std::string& url, const std::string& version) {
 -    auto& board = Board::GetInstance();
 -    auto display = board.GetDisplay();
@@ -292,10 +256,10 @@ index d69d43d..9ea84aa 100644
  void Application::WakeWordInvoke(const std::string& wake_word) {
      if (!protocol_) {
          return;
-@@ -1049,6 +950,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
+@@ -1049,6 +903,34 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
      }
  }
-
+ 
 +void Application::StartProactiveConversation(const std::string& prompt) {
 +    Schedule([this, prompt]() {
 +        if (!protocol_ || GetDeviceState() != kDeviceStateIdle) {
@@ -327,17 +291,25 @@ index d69d43d..9ea84aa 100644
  bool Application::CanEnterSleepMode() {
      if (GetDeviceState() != kDeviceStateIdle) {
          return false;
-@@ -1116,4 +1045,3 @@ void Application::ResetProtocol() {
+@@ -1116,4 +998,3 @@ void Application::ResetProtocol() {
          protocol_.reset();
      });
  }
 -
 diff --git a/main/application.h b/main/application.h
-index 7ca7af4..9b0487d 100644
+index 7ca7af4..6946922 100644
 --- a/main/application.h
 +++ b/main/application.h
-@@ -105,7 +105,7 @@ public:
-
+@@ -12,7 +12,6 @@
+ #include <memory>
+ 
+ #include "protocol.h"
+-#include "ota.h"
+ #include "audio_service.h"
+ #include "device_state.h"
+ #include "device_state_machine.h"
+@@ -105,7 +104,7 @@ public:
+ 
      void Reboot();
      void WakeWordInvoke(const std::string& wake_word);
 -    bool UpgradeFirmware(const std::string& url, const std::string& version = "");
@@ -345,7 +317,7 @@ index 7ca7af4..9b0487d 100644
      bool CanEnterSleepMode();
      void SendMcpMessage(const std::string& payload);
      void SetAecMode(AecMode mode);
-@@ -116,7 +116,7 @@ public:
+@@ -116,7 +115,7 @@ public:
      /**
       * Reset protocol resources (thread-safe)
       * Can be called from any task to release resources allocated after network connected
@@ -353,25 +325,25 @@ index 7ca7af4..9b0487d 100644
 +     * This includes closing the audio channel and resetting protocol resources.
       */
      void ResetProtocol();
-
-@@ -134,7 +134,7 @@ private:
+ 
+@@ -134,8 +133,6 @@ private:
      AecMode aec_mode_ = kAecOff;
      std::string last_error_message_;
      AudioService audio_service_;
 -    std::unique_ptr<Ota> ota_;
-+    std::unique_ptr<RuntimeServices> runtime_services_;
-
+-
      bool has_server_time_ = false;
      bool aborted_ = false;
-@@ -155,13 +155,13 @@ private:
+     bool assets_version_checked_ = false;
+@@ -155,13 +152,13 @@ private:
      void HandleWakeWordDetectedEvent();
      void ContinueOpenAudioChannel(ListeningMode mode);
      void ContinueWakeWordInvoke(const std::string& wake_word);
 +    void ContinueProactiveConversation(const std::string& prompt);
-
+ 
      // Activation task (runs in background)
      void ActivationTask();
-
+ 
      // Helper methods
      void CheckAssetsVersion();
 -    void CheckNewVersion();
@@ -396,7 +368,7 @@ index ad61944..6b84daf 100644
 @@ -356,72 +356,72 @@ bool Assets::LvglStrategy::Apply(Assets* assets) {
  }
  #endif // HAVE_LVGL
-
+ 
 -bool Assets::EmoteStrategy::InitializePartition(Assets* assets) {
 -    assets->partition_valid_ = false;
 -
@@ -529,7 +501,7 @@ index ad61944..6b84daf 100644
 +//     }
 +//     return true;
 +// }
-
+ 
  bool Assets::Download(std::string url, std::function<void(int progress, size_t speed)> progress_callback) {
      ESP_LOGI(TAG, "Downloading new version of assets from %s", url.c_str());
 diff --git a/main/assets.h b/main/assets.h
@@ -566,9 +538,9 @@ index 15e9cc5..d176ddc 100644
  #include <esp_log.h>
 +#include <algorithm>
 +#include <cstdlib>
-
+ 
  #define PROCESSOR_RUNNING 0x01
-
+ 
 @@ -98,6 +100,14 @@ void AfeAudioProcessor::Feed(std::vector<int16_t>&& data) {
      if (!IsRunning()) {
          return;
@@ -594,10 +566,10 @@ index fe2f025..280e296 100644
      std::vector<int16_t> output_buffer_;
 +    uint32_t diagnostic_feed_count_ = 0;
 +    int diagnostic_peak_ = 0;
-
+ 
      void AudioProcessorTask();
  };
-
+ 
 -#endif 
 \ No newline at end of file
 +#endif
@@ -606,7 +578,7 @@ index 835997d..ea50d51 100644
 --- a/main/boards/common/i2c_device.cc
 +++ b/main/boards/common/i2c_device.cc
 @@ -32,4 +32,8 @@ uint8_t I2cDevice::ReadReg(uint8_t reg) {
-
+ 
  void I2cDevice::ReadRegs(uint8_t reg, uint8_t* buffer, size_t length) {
      ESP_ERROR_CHECK(i2c_master_transmit_receive(i2c_device_, &reg, 1, buffer, length, 100));
 +}
@@ -625,12 +597,33 @@ index 7bc917b..874b137 100644
      void ReadRegs(uint8_t reg, uint8_t* buffer, size_t length);
 +    esp_err_t TryReadRegs(uint8_t reg, uint8_t* buffer, size_t length, int timeout_ms = 100);
  };
-
+ 
  #endif // I2C_DEVICE_H
 diff --git a/main/mcp_server.cc b/main/mcp_server.cc
-index 7cd7ba0..758d9d4 100644
+index 7cd7ba0..a39ff74 100644
 --- a/main/mcp_server.cc
 +++ b/main/mcp_server.cc
+@@ -52,17 +52,17 @@ void McpServer::AddCommonTools() {
+             return board.GetDeviceStatusJson();
+         });
+ 
+-    AddTool("self.audio_speaker.set_volume", 
++    AddTool("self.audio_speaker.set_volume",
+         "Set the volume of the audio speaker. If the current volume is unknown, you must call `self.get_device_status` tool first and then call this tool.",
+         PropertyList({
+             Property("volume", kPropertyTypeInteger, 0, 100)
+-        }), 
++        }),
+         [&board](const PropertyList& properties) -> ReturnValue {
+             auto codec = board.GetAudioCodec();
+             codec->SetOutputVolume(properties["volume"].value<int>());
+             return true;
+         });
+-    
++
+     auto backlight = board.GetBacklight();
+     if (backlight) {
+         AddTool("self.screen.set_brightness",
 @@ -100,7 +100,10 @@ void McpServer::AddCommonTools() {
      auto camera = board.GetCamera();
      if (camera) {
@@ -646,7 +639,7 @@ index 7cd7ba0..758d9d4 100644
 @@ -148,26 +151,6 @@ void McpServer::AddUserOnlyTools() {
              return true;
          });
-
+ 
 -    // Firmware upgrade
 -    AddUserOnlyTool("self.upgrade_firmware", "Upgrade firmware from a specific URL. This will download and install the firmware, then reboot the device.",
 -        PropertyList({
@@ -670,14 +663,61 @@ index 7cd7ba0..758d9d4 100644
      // Display control
  #ifdef HAVE_LVGL
      auto display = dynamic_cast<LvglDisplay*>(Board::GetInstance().GetDisplay());
-@@ -366,6 +349,7 @@ void McpServer::ParseMessage(const cJSON* json) {
+@@ -202,10 +185,10 @@ void McpServer::AddUserOnlyTools() {
+                 }
+ 
+                 ESP_LOGI(TAG, "Upload snapshot %u bytes to %s", jpeg_data.size(), url.c_str());
+-                
++
+                 // 构造multipart/form-data请求体
+                 std::string boundary = "----ESP32_SCREEN_SNAPSHOT_BOUNDARY";
+-                
++
+                 auto http = Board::GetInstance().GetNetwork()->CreateHttp(3);
+                 http->SetHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
+                 if (!http->Open("POST", url)) {
+@@ -240,7 +223,7 @@ void McpServer::AddUserOnlyTools() {
+                 ESP_LOGI(TAG, "Snapshot screen result: %s", result.c_str());
+                 return true;
+             });
+-        
++
+         AddUserOnlyTool("self.screen.preview_image", "Preview an image on the screen",
+             PropertyList({
+                 Property("url", kPropertyTypeString)
+@@ -357,19 +340,20 @@ void McpServer::ParseMessage(const cJSON* json) {
+         ESP_LOGE(TAG, "Invalid JSONRPC version: %s", version ? version->valuestring : "null");
+         return;
      }
-     
+-    
++
+     // Check method
+     auto method = cJSON_GetObjectItem(json, "method");
+     if (method == nullptr || !cJSON_IsString(method)) {
+         ESP_LOGE(TAG, "Missing method");
+         return;
+     }
+-    
++
      auto method_str = std::string(method->valuestring);
 +    ESP_LOGI(TAG, "Request: %s", method_str.c_str());
      if (method_str.find("notifications") == 0) {
          return;
      }
+-    
++
+     // Check params
+     auto params = cJSON_GetObjectItem(json, "params");
+     if (params != nullptr && !cJSON_IsObject(params)) {
+@@ -383,7 +367,7 @@ void McpServer::ParseMessage(const cJSON* json) {
+         return;
+     }
+     auto id_int = id->valueint;
+-    
++
+     if (method_str == "initialize") {
+         if (cJSON_IsObject(params)) {
+             auto capabilities = cJSON_GetObjectItem(params, "capabilities");
 @@ -422,6 +406,7 @@ void McpServer::ParseMessage(const cJSON* json) {
              ReplyError(id_int, "Missing name");
              return;
@@ -686,21 +726,32 @@ index 7cd7ba0..758d9d4 100644
          auto tool_arguments = cJSON_GetObjectItem(params, "arguments");
          if (tool_arguments != nullptr && !cJSON_IsObject(tool_arguments)) {
              ESP_LOGE(TAG, "tools/call: Invalid arguments");
-@@ -453,8 +438,11 @@ void McpServer::ReplyError(int id, const std::string& message) {
+@@ -453,13 +438,16 @@ void McpServer::ReplyError(int id, const std::string& message) {
  }
-
+ 
  void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_only_tools) {
 -    const int max_payload_size = 8000;
 +    // Leave enough internal SRAM for MQTT/TLS to encrypt the response. The
 +    // Xiaozhi MCP client follows nextCursor, so a smaller page loses no tools.
 +    constexpr size_t kMaxPayloadSize = 3000;
      std::string json = "{\"tools\":[";
+-    
 +    size_t listed_count = 0;
-     
++
      bool found_cursor = cursor.empty();
      auto it = tools_.begin();
-@@ -478,13 +466,14 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
-         
+     std::string next_cursor = "";
+-    
++
+     while (it != tools_.end()) {
+         // 如果我们还没有找到起始位置，继续搜索
+         if (!found_cursor) {
+@@ -475,23 +463,24 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+             ++it;
+             continue;
+         }
+-        
++
          // 添加tool前检查大小
          std::string tool_json = (*it)->to_json() + ",";
 -        if (json.length() + tool_json.length() + 30 > max_payload_size) {
@@ -709,21 +760,46 @@ index 7cd7ba0..758d9d4 100644
              next_cursor = (*it)->name();
              break;
          }
-         
+-        
++
          json += tool_json;
 +        ++listed_count;
          ++it;
      }
-     
-@@ -505,6 +494,8 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+-    
++
+     if (json.back() == ',') {
+         json.pop_back();
+     }
+-    
++
+     if (json.back() == '[' && !tools_.empty()) {
+         // 如果没有添加任何tool，返回错误
+         ESP_LOGE(TAG, "tools/list: Failed to add tool %s because of payload size limit", next_cursor.c_str());
+@@ -504,16 +493,18 @@ void McpServer::GetToolsList(int id, const std::string& cursor, bool list_user_o
+     } else {
          json += "],\"nextCursor\":\"" + next_cursor + "\"}";
      }
-     
+-    
++
 +    ESP_LOGI(TAG, "tools/list: returning %u tool(s), next cursor: %s", static_cast<unsigned>(listed_count),
 +             next_cursor.empty() ? "none" : next_cursor.c_str());
      ReplyResult(id, json);
  }
-
+ 
+ void McpServer::DoToolCall(int id, const std::string& tool_name, const cJSON* tool_arguments) {
+-    auto tool_iter = std::find_if(tools_.begin(), tools_.end(), 
+-                                 [&tool_name](const McpTool* tool) { 
+-                                     return tool->name() == tool_name; 
++    auto tool_iter = std::find_if(tools_.begin(), tools_.end(),
++                                 [&tool_name](const McpTool* tool) {
++                                     return tool->name() == tool_name;
+                                  });
+-    
++
+     if (tool_iter == tools_.end()) {
+         ESP_LOGE(TAG, "tools/call: Unknown tool: %s", tool_name.c_str());
+         ReplyError(id, "Unknown tool: " + tool_name);
 diff --git a/main/ota.cc b/main/ota.cc
 index bcc0dc5..ecc78e2 100644
 --- a/main/ota.cc
@@ -741,16 +817,16 @@ index bcc0dc5..ecc78e2 100644
  #ifdef SOC_HMAC_SUPPORTED
  #include <esp_hmac.h>
  #endif
-
+ 
  #include <cstring>
 -#include <vector>
 -#include <sstream>
 -#include <algorithm>
-
+ 
 -#define TAG "Ota"
 +#define TAG "RuntimeServices"
-
-
+ 
+ 
 -Ota::Ota() {
 +RuntimeServices::RuntimeServices() {
  #ifdef ESP_EFUSE_BLOCK_USR_DATA
@@ -759,11 +835,11 @@ index bcc0dc5..ecc78e2 100644
 @@ -40,11 +33,12 @@ Ota::Ota() {
  #endif
  }
-
+ 
 -Ota::~Ota() {
 +RuntimeServices::~RuntimeServices() {
  }
-
+ 
 -std::string Ota::GetCheckVersionUrl() {
 +std::string RuntimeServices::GetServiceConfigUrl() {
      Settings settings("wifi", false);
@@ -774,7 +850,7 @@ index bcc0dc5..ecc78e2 100644
 @@ -52,7 +46,7 @@ std::string Ota::GetCheckVersionUrl() {
      return url;
  }
-
+ 
 -std::unique_ptr<Http> Ota::SetupHttp() {
 +std::unique_ptr<Http> RuntimeServices::SetupHttp() {
      auto& board = Board::GetInstance();
@@ -783,7 +859,7 @@ index bcc0dc5..ecc78e2 100644
 @@ -71,20 +65,13 @@ std::unique_ptr<Http> Ota::SetupHttp() {
      return http;
  }
-
+ 
 -/* 
 - * Specification: https://ccnphfhqs21z.feishu.cn/wiki/FjW6wZmisimNBBkov6OcmfvknVd
 - */
@@ -792,7 +868,7 @@ index bcc0dc5..ecc78e2 100644
      auto& board = Board::GetInstance();
 -    auto app_desc = esp_app_get_description();
 +    ESP_LOGI(TAG, "Fetching runtime service configuration");
-
+ 
 -    // Check if there is a new firmware version available
 -    current_version_ = app_desc->version;
 -    ESP_LOGI(TAG, "Current version: %s", current_version_.c_str());
@@ -804,19 +880,19 @@ index bcc0dc5..ecc78e2 100644
 +        ESP_LOGE(TAG, "Service configuration URL is not properly set");
          return ESP_ERR_INVALID_ARG;
      }
-
+ 
 @@ -102,17 +89,13 @@ esp_err_t Ota::CheckVersion() {
-
+ 
      auto status_code = http->GetStatusCode();
      if (status_code != 200) {
 -        ESP_LOGE(TAG, "Failed to check version, status code: %d", status_code);
 +        ESP_LOGE(TAG, "Failed to fetch service configuration, status code: %d", status_code);
          return status_code;
      }
-
+ 
      data = http->ReadAll();
      http->Close();
-
+ 
 -    // Response: { "firmware": { "version": "1.0.0", "url": "http://" } }
 -    // Parse the JSON response and check if the version is newer
 -    // If it is, set has_new_version_ to true and store the new version and URL
@@ -833,12 +909,12 @@ index bcc0dc5..ecc78e2 100644
 -            activation_timeout_ms_ = timeout_ms->valueint;
 -        }
      }
-
+ 
      has_mqtt_config_ = false;
 @@ -210,215 +189,11 @@ esp_err_t Ota::CheckVersion() {
          ESP_LOGW(TAG, "No server_time section found!");
      }
-
+ 
 -    has_new_version_ = false;
 -    cJSON *firmware = cJSON_GetObjectItem(root, "firmware");
 -    if (cJSON_IsObject(firmware)) {
@@ -872,7 +948,7 @@ index bcc0dc5..ecc78e2 100644
      cJSON_Delete(root);
      return ESP_OK;
  }
-
+ 
 -void Ota::MarkCurrentVersionValid() {
 -    auto partition = esp_ota_get_running_partition();
 -    if (strcmp(partition->label, "factory") == 0) {
@@ -1055,14 +1131,14 @@ index bcc0dc5..ecc78e2 100644
 @@ -455,13 +230,13 @@ std::string Ota::GetActivationPayload() {
      return json;
  }
-
+ 
 -esp_err_t Ota::Activate() {
 +esp_err_t RuntimeServices::Activate() {
      if (!has_activation_challenge_) {
          ESP_LOGW(TAG, "No activation challenge found");
          return ESP_FAIL;
      }
-
+ 
 -    std::string url = GetCheckVersionUrl();
 +    std::string url = GetServiceConfigUrl();
      if (url.back() != '/') {
@@ -1077,13 +1153,13 @@ index 1e5d687..ba3f9d5 100644
 -#define _OTA_H
 +#ifndef _RUNTIME_SERVICES_H
 +#define _RUNTIME_SERVICES_H
-
+ 
 -#include <functional>
  #include <string>
-
+ 
  #include <esp_err.h>
  #include "board.h"
-
+ 
 -class Ota {
 +class RuntimeServices {
  public:
@@ -1091,7 +1167,7 @@ index 1e5d687..ba3f9d5 100644
 -    ~Ota();
 +    RuntimeServices();
 +    ~RuntimeServices();
-
+ 
 -    esp_err_t CheckVersion();
 +    esp_err_t FetchRuntimeConfig();
      esp_err_t Activate();
@@ -1112,7 +1188,7 @@ index 1e5d687..ba3f9d5 100644
      const std::string& GetActivationCode() const { return activation_code_; }
 -    std::string GetCheckVersionUrl();
 +    std::string GetServiceConfigUrl();
-
+ 
  private:
      std::string activation_message_;
      std::string activation_code_;
@@ -1136,6 +1212,39 @@ index 1e5d687..ba3f9d5 100644
      std::string GetActivationPayload();
      std::unique_ptr<Http> SetupHttp();
  };
-
+ 
 -#endif // _OTA_H
 +#endif // _RUNTIME_SERVICES_H
+diff --git a/main/protocols/websocket_protocol.cc b/main/protocols/websocket_protocol.cc
+index f0cc034..d98ae6b 100644
+--- a/main/protocols/websocket_protocol.cc
++++ b/main/protocols/websocket_protocol.cc
+@@ -2,7 +2,6 @@
+ #include "board.h"
+ #include "system_info.h"
+ #include "application.h"
+-#include "settings.h"
+ 
+ #include <cstring>
+ #include <cJSON.h>
+@@ -81,12 +80,14 @@ void WebsocketProtocol::CloseAudioChannel(bool send_goodbye) {
+ }
+ 
+ bool WebsocketProtocol::OpenAudioChannel() {
+-    Settings settings("websocket", false);
+-    std::string url = settings.GetString("url");
+-    std::string token = settings.GetString("token");
+-    int version = settings.GetInt("version");
+-    if (version != 0) {
+-        version_ = version;
++    std::string url = CONFIG_YUKI_GATEWAY_URL;
++    std::string token = CONFIG_YUKI_GATEWAY_TOKEN;
++    version_ = CONFIG_YUKI_GATEWAY_PROTOCOL_VERSION;
++
++    if (url.empty()) {
++        ESP_LOGE(TAG, "Yuki gateway URL is not configured");
++        SetError("Yuki gateway URL is not configured");
++        return false;
+     }
+ 
+     error_occurred_ = false;

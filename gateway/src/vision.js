@@ -3,7 +3,7 @@ import {isAuthorized} from './authorization.js';
 
 const MAX_IMAGE_REQUEST_BYTES = 2 * 1024 * 1024;
 
-export class VertexVision {
+export class GeminiVision {
   constructor(config, {createClient = defaultCreateClient} = {}) {
     this.config = config;
     this.client = createClient(config);
@@ -18,13 +18,13 @@ export class VertexVision {
       ],
       config: {
         systemInstruction: 'Answer the camera question directly and briefly. Describe only visible evidence. Do not identify a person or infer sensitive traits.',
-        temperature: 0.2,
+        thinkingConfig: {thinkingLevel: 'minimal'},
         maxOutputTokens: 256,
       },
     });
     const result = response.text?.trim();
     if (!result) {
-      throw new Error('Vertex vision returned no description');
+      throw new Error('Gemini vision returned no description');
     }
     return result;
   }
@@ -76,9 +76,7 @@ export function createHttpHandler({gatewayToken, vision}) {
 
 function defaultCreateClient(config) {
   return new GoogleGenAI({
-    vertexai: true,
-    project: config.googleCloudProject,
-    location: config.googleCloudLocation,
+    apiKey: config.geminiApiKey,
   });
 }
 

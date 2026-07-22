@@ -32,6 +32,10 @@ export class GeminiLiveBridge {
     this.client = null;
     this.liveSession = null;
     this.connectPromise = null;
+    this.sessionHandle = null;
+    this.connectionGeneration = 0;
+    this.turnActive = false;
+    this.rotatePending = false;
     this.closed = false;
     this.listening = false;
     this.acceptOutput = false;
@@ -71,6 +75,7 @@ export class GeminiLiveBridge {
     this.lastSentOutputTranscript = '';
     this.listening = true;
     this.acceptOutput = false;
+    this.turnActive = true;
     live.sendRealtimeInput({activityStart: {}});
   }
 
@@ -81,10 +86,8 @@ export class GeminiLiveBridge {
     this.outputTranscript = '';
     this.lastSentOutputTranscript = '';
     this.acceptOutput = true;
-    live.sendClientContent({
-      turns: [{role: 'user', parts: [{text}]}],
-      turnComplete: true,
-    });
+    this.turnActive = true;
+    live.sendRealtimeInput({text});
   }
 
   sendInputPcm(pcm) {
@@ -114,19 +117,32 @@ export class GeminiLiveBridge {
     }
     this.listening = false;
     this.acceptOutput = false;
+    this.turnActive = false;
     this.stopOutput(true);
+    this.rotateIfReady();
   }
 
   close() {
     this.closed = true;
     this.listening = false;
     this.acceptOutput = false;
+    this.turnActive = false;
+    this.connectionGeneration++;
     this.stopOutput(true);
     this.liveSession?.close();
     this.liveSession = null;
   }
 
   async handleMessage(message) {
+    const resumption = message.sessionResumptionUpdate;
+    if (resumption?.resumable && resumption.newHandle) {
+      this.sessionHandle = resumption.newHandle;
+    }
+    if (message.goAway) {
+      this.rotatePending = true;
+      this.rotateIfReady();
+    }
+
     if (message.toolCall?.functionCalls?.length) {
       await this.handleToolCalls(message.toolCall.functionCalls);
     }
@@ -148,9 +164,13 @@ export class GeminiLiveBridge {
     }
 
     if (content.interrupted) {
+      this.turnActive = false;
       this.stopOutput(true);
+      this.rotateIfReady();
     } else if (content.turnComplete) {
+      this.turnActive = false;
       this.finishOutput();
+      this.rotateIfReady();
     }
   }
 
@@ -168,6 +188,7 @@ export class GeminiLiveBridge {
       tools.push({functionDeclarations: this.toolDeclarations});
     }
 
+    const connectionGeneration = ++this.connectionGeneration;
     const live = await this.client.live.connect({
       model: this.config.geminiModel,
       config: {
@@ -176,7 +197,6 @@ export class GeminiLiveBridge {
         speechConfig: {
           voiceConfig: {prebuiltVoiceConfig: {voiceName: this.config.geminiVoice}},
         },
-        thinkingConfig: {thinkingBudget: 0},
         inputAudioTranscription: {},
         outputAudioTranscription: {},
         realtimeInputConfig: {
@@ -186,23 +206,56 @@ export class GeminiLiveBridge {
           triggerTokens: '100000',
           slidingWindow: {targetTokens: '50000'},
         },
+        sessionResumption: this.sessionHandle ? {handle: this.sessionHandle} : {},
         tools: tools.length > 0 ? tools : undefined,
       },
       callbacks: {
         onmessage: (message) => {
+          if (connectionGeneration !== this.connectionGeneration) return;
           this.handleMessage(message).catch((error) => this.reportError(error));
         },
-        onerror: (event) => this.reportError(event.error ?? new Error(event.message ?? 'Gemini Live error')),
+        onerror: (event) => {
+          if (connectionGeneration !== this.connectionGeneration) return;
+          this.lastConnectionError = event.error ?? new Error(event.message ?? 'Gemini Live error');
+        },
         onclose: (event) => {
+          if (connectionGeneration !== this.connectionGeneration) return;
           this.liveSession = null;
           if (!this.closed) {
-            this.reportError(new Error(`Gemini Live closed (${event.code ?? 'unknown'})`));
+            if (this.sessionHandle) {
+              this.connect().catch((error) => this.reportError(error));
+            } else {
+              this.reportError(this.lastConnectionError ?? new Error(`Gemini Live closed (${event.code ?? 'unknown'})`));
+            }
           }
         },
       },
     });
     this.liveSession = live;
     return live;
+  }
+
+  rotateIfReady() {
+    if (!this.rotatePending || this.turnActive || this.closed) {
+      return;
+    }
+    this.rotateSession().catch((error) => this.reportError(error));
+  }
+
+  async rotateSession() {
+    if (this.closed) {
+      return;
+    }
+    this.rotatePending = false;
+    const previous = this.liveSession;
+    if (!previous) {
+      await this.connect();
+      return;
+    }
+    this.liveSession = null;
+    this.connectionGeneration++;
+    previous.close();
+    await this.connect();
   }
 
   handleInputTranscription(transcription, sendWhenFinished = true) {
@@ -334,18 +387,13 @@ export class GeminiLiveBridge {
 
 function defaultCreateClient(config) {
   return new GoogleGenAI({
-    vertexai: true,
-    project: config.googleCloudProject,
-    location: config.googleCloudLocation,
+    apiKey: config.geminiApiKey,
   });
 }
 
 function validateConfig(config) {
-  if (!config.googleCloudProject) {
-    throw new Error('GOOGLE_CLOUD_PROJECT must be set for Gemini Live');
-  }
-  if (!config.googleCloudLocation) {
-    throw new Error('GOOGLE_CLOUD_LOCATION must be set for Gemini Live');
+  if (!config.geminiApiKey) {
+    throw new Error('GEMINI_API_KEY must be set for Gemini Live');
   }
   if (!config.geminiModel) {
     throw new Error('YUKI_GEMINI_MODEL must be set for Gemini Live');

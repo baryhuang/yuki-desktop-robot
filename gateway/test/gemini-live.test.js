@@ -17,7 +17,7 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
     live: {
       connect: async (params) => {
         callbacks = params.callbacks;
-        assert.equal(params.model, 'gemini-live-2.5-flash-native-audio');
+        assert.equal(params.model, 'gemini-3.1-flash-live-preview');
         assert.equal(params.config.realtimeInputConfig.automaticActivityDetection.disabled, true);
         assert.deepEqual(params.config.tools[0], {googleSearch: {}});
         assert.equal(params.config.tools[1].functionDeclarations[0].name, 'self.robot.wave');
@@ -72,9 +72,9 @@ test('Gemini Live streams device PCM and returns paced audio events', async () =
 });
 
 test('proactive curiosity is sent as an ordered text turn', async () => {
-  const clientContent = [];
+  const realtimeInput = [];
   const fakeSession = {
-    sendClientContent: (content) => clientContent.push(content),
+    sendRealtimeInput: (content) => realtimeInput.push(content),
     close: () => {},
   };
   const bridge = new GeminiLiveBridge({
@@ -87,10 +87,7 @@ test('proactive curiosity is sent as an ordered text turn', async () => {
   });
 
   await bridge.sendText('Find one fresh robotics story.');
-  assert.deepEqual(clientContent, [{
-    turns: [{role: 'user', parts: [{text: 'Find one fresh robotics story.'}]}],
-    turnComplete: true,
-  }]);
+  assert.deepEqual(realtimeInput, [{text: 'Find one fresh robotics story.'}]);
   bridge.close();
 });
 
@@ -128,11 +125,47 @@ test('Gemini function calls are executed through device MCP', async () => {
   bridge.close();
 });
 
+test('Gemini Live resumes the session when the server sends GoAway', async () => {
+  const connections = [];
+  const callbacks = [];
+  const sessions = [];
+  const createClient = () => ({
+    live: {
+      connect: async (params) => {
+        connections.push(params);
+        callbacks.push(params.callbacks);
+        const session = {close: () => { session.closed = true; }};
+        sessions.push(session);
+        return session;
+      },
+    },
+  });
+  const bridge = new GeminiLiveBridge({
+    config: testConfig(),
+    sendJson: () => {},
+    sendAudio: () => {},
+    onError: (error) => assert.fail(error.message),
+    createClient,
+    frameDelayMs: 0,
+  });
+
+  await bridge.connect();
+  callbacks[0].onmessage({
+    sessionResumptionUpdate: {resumable: true, newHandle: 'resume-yuki-1'},
+  });
+  callbacks[0].onmessage({goAway: {timeLeft: '30s'}});
+  await waitFor(() => connections.length === 2);
+
+  assert.equal(sessions[0].closed, true);
+  assert.deepEqual(connections[0].config.sessionResumption, {});
+  assert.deepEqual(connections[1].config.sessionResumption, {handle: 'resume-yuki-1'});
+  bridge.close();
+});
+
 function testConfig() {
   return {
-    googleCloudProject: 'test-project',
-    googleCloudLocation: 'us-west1',
-    geminiModel: 'gemini-live-2.5-flash-native-audio',
+    geminiApiKey: 'test-key',
+    geminiModel: 'gemini-3.1-flash-live-preview',
     geminiVoice: 'Leda',
     googleSearchEnabled: true,
   };

@@ -12,8 +12,8 @@ The repository root contains only Yuki's authored code and the changes that inte
 
 - [`firmware/yuki/`](firmware/yuki/) - original native C++/LVGL character, ESP-DL vision, curiosity, and character assets
 - [`patches/yuki-stackchan-integration.patch`](patches/yuki-stackchan-integration.patch) - every modification or removal made to the StackChan firmware
-- [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - Yuki's changes to the official Xiaozhi runtime, including activation, audio, MCP, and automatic wake behavior
-- [`gateway/`](gateway/) - an experimental Gemini Live gateway retained for later work; it is not connected to the current firmware
+- [`patches/xiaozhi-esp32.patch`](patches/xiaozhi-esp32.patch) - Yuki's changes to the embedded audio, WebSocket, MCP, and automatic wake runtime
+- [`gateway/`](gateway/) - the DigitalOcean-hosted Gemini Live audio and MCP gateway
 - [`docs/slides/`](docs/slides/) - the five-page hackathon deck as 2560 x 1440 PNGs plus an editable PowerPoint file
 - [`upstream/stackchan/`](upstream/stackchan/) - unmodified M5Stack StackChan baseline, retained only to reproduce the firmware build
 
@@ -30,25 +30,25 @@ Implemented during the hackathon:
 - Speech-state coordination that synchronizes Yuki's mouth, safety-aware head gestures, and two-color LED pulses while preserving face-tracking priority
 - Configurable interest-guided curiosity that autonomously asks the active backend to explore the web and start a short conversation, gated by idle state and recent face presence
 - MCP tools to configure curiosity, inspect its settings, and trigger an immediate demo without tying the firmware to one LLM provider
-- Official Xiaozhi service discovery, activation, and MQTT/WebSocket conversation transport
-- Automatic entry into listening mode as soon as the Xiaozhi service connection is ready
+- A direct authenticated WebSocket transport from the ESP32 to Yuki Gateway, without Xiaozhi discovery, activation, or inference services
+- Automatic entry into listening mode as soon as the Yuki Gateway connection is ready
 - Dynamic MCP discovery that exposes the robot's actual camera, sensors, LEDs, and motion tools to the live model
-- An authenticated Vertex AI vision endpoint for camera tool calls, while continuous face tracking stays local on the ESP32
+- An authenticated Gemini API vision endpoint for camera tool calls, while continuous face tracking stays local on the ESP32
 - A verified ESP-IDF 5.5.4 build for the ESP32-S3 hardware
 - A verified 16 MB flash layout with dual OTA slots, a dedicated face-model partition, assets, coredump storage, and untouched calibration NVS
 
 In active development:
 
 - Hardware tuning of face-tracking direction, gain, and wave-detection thresholds in varied lighting
-- Evaluation of a future Gemini Live backend after the official Xiaozhi path is stable on hardware
+- Deployment and hardware validation of the Gemini Live gateway on DigitalOcean
 
 The runtime language-model backend is intentionally replaceable. Yuki's perception, animation, physical behavior, and MCP interface remain native to the robot.
 
 ## Voice Runtime
 
-The current firmware uses the official Xiaozhi service. At startup it fetches the device's runtime configuration, handles activation when required, selects the MQTT or WebSocket transport returned by the service, and automatically opens the conversation after the connection is ready. Yuki keeps Xiaozhi's streaming audio and MCP protocol while replacing the character, perception, physical behavior, and device tools.
+The `develop` firmware connects directly to Yuki Gateway on DigitalOcean. The gateway converts the device's Opus stream to the Gemini Live API's 16 kHz PCM input, returns native 24 kHz speech as Opus, forwards Gemini function calls to the robot's MCP tools, and exposes camera images to the Gemini API only on explicit tool calls.
 
-The firmware does not check for or install firmware updates. The Xiaozhi configuration endpoint is used only for service discovery, device activation, and server time. The experimental Gemini gateway under [`gateway/`](gateway/) is not part of the current device build.
+The embedded side retains the proven Xiaozhi-compatible message and audio framing, but it no longer connects to Xiaozhi services. The Gemini API key stays on the gateway; firmware contains only the gateway URL and a separate gateway access token. The submitted hackathon build remains frozen on `main`, while this migration is developed on `develop`.
 
 ## Hardware
 
@@ -70,6 +70,7 @@ cd build/stackchan/firmware
 . "$HOME/esp/esp-idf/export.sh"
 python3 ./fetch_repos.py
 idf.py set-target esp32s3
+idf.py menuconfig # Set Yuki Gateway URL and token
 idf.py build
 ```
 
@@ -86,7 +87,7 @@ idf.py -p /dev/cu.usbmodem1101 flash
 
 > **Hardware warning:** Do not run `erase-flash` or `nvs_flash_erase()` on a configured StackChan. NVS contains device-specific servo calibration and identity values. The tilt servo must remain within its safe physical range.
 
-For a quick curiosity demo, open `AI.AGENT`, remain in view of the camera, and ask Yuki to set your interests or to share something now. The request is deferred until the current conversation returns to standby, then Yuki sends the exploration prompt through the active Xiaozhi session.
+For a quick curiosity demo, open `AI.AGENT`, remain in view of the camera, and ask Yuki to set your interests or to share something now. The request is deferred until the current conversation returns to standby, then Yuki sends the exploration prompt through the active Gemini Live session.
 
 ## How Codex contributed
 

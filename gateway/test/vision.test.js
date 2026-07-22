@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
-import {createHttpHandler, VertexVision} from '../src/vision.js';
+import {createHttpHandler, GeminiVision} from '../src/vision.js';
 
 test('camera JPEG is analyzed and returned in the firmware response format', async (context) => {
   const calls = [];
-  const vision = new VertexVision(testConfig(), {
+  const vision = new GeminiVision(testConfig(), {
     createClient: () => ({models: {generateContent: async (request) => {
       calls.push(request);
       return {text: 'A person is sitting in front of Yuki.'};
@@ -29,7 +29,9 @@ test('camera JPEG is analyzed and returned in the firmware response format', asy
     success: true,
     result: 'A person is sitting in front of Yuki.',
   });
-  assert.equal(calls[0].model, 'gemini-2.5-flash');
+  assert.equal(calls[0].model, 'gemini-3.6-flash');
+  assert.deepEqual(calls[0].config.thinkingConfig, {thinkingLevel: 'minimal'});
+  assert.equal('temperature' in calls[0].config, false);
   assert.equal(calls[0].contents[1].text, 'What can you see?');
   assert.equal(calls[0].contents[0].inlineData.mimeType, 'image/jpeg');
 });
@@ -45,8 +47,7 @@ test('camera endpoint requires the gateway bearer token', async (context) => {
 
 function testConfig() {
   return {
-    googleCloudProject: 'test-project',
-    googleCloudLocation: 'us-west1',
-    geminiVisionModel: 'gemini-2.5-flash',
+    geminiApiKey: 'test-key',
+    geminiVisionModel: 'gemini-3.6-flash',
   };
 }

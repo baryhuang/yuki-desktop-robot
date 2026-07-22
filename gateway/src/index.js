@@ -13,10 +13,10 @@ import {
   parseIncomingOpusFrame,
   serializeOutgoingOpusFrame,
 } from './audio.js';
-import {createHttpHandler, VertexVision} from './vision.js';
+import {createHttpHandler, GeminiVision} from './vision.js';
 
 const config = readConfig(process.env);
-const vision = new VertexVision(config);
+const vision = new GeminiVision(config);
 const httpServer = createServer(createHttpHandler({gatewayToken: config.gatewayToken, vision}));
 const server = new WebSocketServer({server: httpServer});
 httpServer.listen(config.port, '0.0.0.0');
@@ -235,11 +235,10 @@ function isCurrent(session, generation) {
 function readConfig(env) {
   return {
     gatewayToken: env.YUKI_GATEWAY_TOKEN,
-    googleCloudProject: env.GOOGLE_CLOUD_PROJECT,
-    googleCloudLocation: env.GOOGLE_CLOUD_LOCATION ?? 'us-west1',
-    geminiModel: env.YUKI_GEMINI_MODEL ?? 'gemini-live-2.5-flash-native-audio',
+    geminiApiKey: env.GEMINI_API_KEY,
+    geminiModel: env.YUKI_GEMINI_MODEL ?? 'gemini-3.1-flash-live-preview',
     geminiVoice: env.YUKI_GEMINI_VOICE ?? 'Leda',
-    geminiVisionModel: env.YUKI_GEMINI_VISION_MODEL ?? 'gemini-2.5-flash',
+    geminiVisionModel: env.YUKI_GEMINI_VISION_MODEL ?? 'gemini-3.6-flash',
     googleSearchEnabled: env.YUKI_ENABLE_GOOGLE_SEARCH !== 'false',
     visionUrl: env.YUKI_VISION_URL ?? (env.YUKI_GATEWAY_HOST ? `https://${env.YUKI_GATEWAY_HOST}/vision` : undefined),
     port: Number.parseInt(env.PORT ?? '8787', 10),
